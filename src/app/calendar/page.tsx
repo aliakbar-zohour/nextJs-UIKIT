@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useEffect, useState } from "react";
 import FullCalendar from "@fullcalendar/react";
@@ -94,8 +94,7 @@ export default function CalendarPage() {
     // محدودیت یک روز
     const startDate = new Date(newStart);
     const endDate = new Date(newEnd);
-    const diff =
-      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+    const diff = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
     if (diff > 1) {
       alert("حداکثر مدت رزرو یک روز است");
       return;
@@ -183,9 +182,7 @@ export default function CalendarPage() {
             );
             const userAvatars = [
               ...new Set(
-                dayEvents
-                  .map((ev) => ev.extendedProps?.user?.avatar)
-                  .filter(Boolean)
+                dayEvents.map((ev) => ev.extendedProps?.user?.avatar).filter(Boolean)
               ),
             ];
 
@@ -298,9 +295,7 @@ export default function CalendarPage() {
         {selectedEvent && (
           <>
             <div className="flex justify-between items-center border-b pb-3">
-              <h2 className="text-lg font-semibold text-gray-700">
-                جزئیات رزرو
-              </h2>
+              <h2 className="text-lg font-semibold text-gray-700">جزئیات رزرو</h2>
               <button
                 onClick={() => setSelectedEvent(null)}
                 className="px-3 py-1 rounded-lg bg-gray-200 hover:bg-gray-300 transition"

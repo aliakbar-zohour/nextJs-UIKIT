@@ -3,6 +3,7 @@
 import { ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { IoCloseOutline } from 'react-icons/io5';
+import Button from '../Button/Button';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -16,8 +17,8 @@ const backdropVariants = {
 };
 
 const sidebarVariants = {
-  hidden: { x: '100%', opacity: 0 }, // از سمت چپ خارج شده
-  visible: { x: 0, opacity: 1 },       // در موقعیت نهایی
+  hidden: { x: '100%', opacity: 0 },
+  visible: { x: 0, opacity: 1 }, 
 };
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, children }) => {
@@ -25,7 +26,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, children }) => {
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-[999999] flex justify-end"
+          className="fixed inset-0 z-[999999] flex justify-start"
           initial="hidden"
           animate="visible"
           exit="hidden"
@@ -42,12 +43,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, children }) => {
             transition={{ type: 'tween', stiffness: 300, damping: 25 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <button
+            <Button
               onClick={onClose}
               className="absolute top-6 -left-14 scale-[1.4] bg-white border-[0.5px] w-8 p-1 h-8 cursor-pointer flex justify-center items-center text-xl text-gray-600 rounded-full hover:text-gray-900 transition shadow-xl"
             >
               <IoCloseOutline  />
-            </button>
+            </Button>
 
             {children}
           </motion.div>

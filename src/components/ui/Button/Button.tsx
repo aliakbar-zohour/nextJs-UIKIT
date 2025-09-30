@@ -5,6 +5,7 @@ type ButtonProps = {
   children: React.ReactNode;
   variant?: "primary" | "secondary" | "outline" | "danger";
   size?: "sm" | "md" | "lg";
+  className?: string;
   onClick?: () => void;
   disabled?: boolean;
   loading?: boolean;
@@ -14,6 +15,7 @@ const Button: React.FC<ButtonProps> = ({
   children,
   variant = "primary",
   size = "md",
+  className,
   onClick,
   disabled = false,
   loading = false,
@@ -39,7 +41,7 @@ const Button: React.FC<ButtonProps> = ({
   };
 
   return (
-    <button
+    <Button
       onClick={onClick}
       disabled={disabled || loading}
       className={classNames(
@@ -47,14 +49,14 @@ const Button: React.FC<ButtonProps> = ({
         variants[variant],
         sizes[size],
         (disabled || loading) && "opacity-60 cursor-not-allowed"
-      )}
+      ,className) }
     >
       {loading ? (
         <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
       ) : (
         children
       )}
-    </button>
+    </Button>
   );
 };
 

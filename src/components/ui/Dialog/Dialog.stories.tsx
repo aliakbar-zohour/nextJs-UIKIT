@@ -21,12 +21,12 @@ const Template = (args: any) => {
 
   return (
     <div className="p-6 space-y-4">
-      <button
+      <Button
         onClick={handleOpen}
         className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
       >
         Open Dialog
-      </button>
+      </Button>
 
       <Dialog {...args} isOpen={open} onClose={handleClose}>
         {args.children}
@@ -61,12 +61,12 @@ LongContent.args = {
         Mauris massa. Vestibulum lacinia arcu eget nulla. Class aptent taciti sociosqu ad litora
         torquent per conubia nostra, per inceptos himenaeos. Curabitur sodales ligula in libero.
       </p>
-      <button
+      <Button
         onClick={() => alert('Button inside dialog clicked!')}
         className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition"
       >
         Action Button
-      </button>
+      </Button>
     </div>
   ),
 };
@@ -88,14 +88,14 @@ FormContent.args = {
         className="w-full px-3 py-2 border rounded"
       />
       <div className="flex justify-end gap-2">
-        <button
-          type="button"
+        <Button
+          type="Button"
           className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition"
           onClick={() => alert('Cancelled')}
         >
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
           type="submit"
           className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
           onClick={(e) => {
@@ -104,7 +104,7 @@ FormContent.args = {
           }}
         >
           Submit
-        </button>
+        </Button>
       </div>
     </form>
   ),
