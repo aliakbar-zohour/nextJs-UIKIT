@@ -1,0 +1,254 @@
+'use client';
+
+import { useEffect, useState } from "react";
+import FullCalendar from "@fullcalendar/react";
+import timeGridPlugin from "@fullcalendar/timegrid";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import interactionPlugin from "@fullcalendar/interaction";
+import faLocale from "@fullcalendar/core/locales/fa";
+import DatePicker from "react-multi-date-picker";
+import TimePicker from "react-multi-date-picker/plugins/time_picker";
+import persian from "react-date-object/calendars/persian";
+import persian_fa from "react-date-object/locales/persian_fa";
+import Dialog from "@/components/ui/Dialog/Dialog";
+
+interface UserType {
+  id: string;
+  name: string;
+  avatar: string;
+}
+
+interface EventType {
+  id: string;
+  title: string;
+  start: string;
+  end?: string;
+  color?: string;
+  display?: string;
+  extendedProps?: {
+    user?: UserType;
+    description?: string;
+  };
+}
+
+export default function CalendarPage() {
+  const [events, setEvents] = useState<EventType[]>([]);
+  const [users, setUsers] = useState<UserType[]>([]);
+  const [selectedEvent, setSelectedEvent] = useState<EventType | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [newUser, setNewUser] = useState("");
+  const [newStart, setNewStart] = useState("");
+  const [newEnd, setNewEnd] = useState("");
+  const [newDesc, setNewDesc] = useState("");
+
+  useEffect(() => {
+    async function fetchEvents() {
+      const res = await fetch("/api/events");
+      const data = await res.json();
+      setEvents(data);
+    }
+    fetchEvents();
+  }, []);
+
+  useEffect(() => {
+    async function fetchUsers() {
+      const res = await fetch("/api/users");
+      const data = await res.json();
+      setUsers(data);
+    }
+    fetchUsers();
+  }, []);
+
+  async function saveEvent() {
+    if (!selectedEvent) return;
+    const updated = { ...selectedEvent, title: editTitle };
+    await fetch("/api/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updated),
+    });
+    setEvents((prev) =>
+      prev.map((ev) => (ev.id === updated.id ? updated : ev))
+    );
+    setSelectedEvent(updated);
+    setIsEditing(false);
+  }
+
+  async function deleteEvent() {
+    if (!selectedEvent) return;
+    await fetch("/api/events", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: selectedEvent.id }),
+    });
+    setEvents((prev) => prev.filter((ev) => ev.id !== selectedEvent.id));
+    setSelectedEvent(null);
+  }
+
+  async function createEvent() {
+    if (!newUser || !newStart || !newEnd) return;
+    const user = users.find((u) => u.id === newUser);
+    const newEvent: EventType = {
+      id: String(Date.now()),
+      title: user ? user.name : "رزرو",
+      start: newStart,
+      end: newEnd,
+      color: "#10b981",
+      extendedProps: {
+        user,
+        description: newDesc,
+      },
+    };
+    await fetch("/api/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newEvent),
+    });
+    setEvents((prev) => [...prev, newEvent]);
+    setIsCreateOpen(false);
+    setNewUser("");
+    setNewStart("");
+    setNewEnd("");
+    setNewDesc("");
+  }
+
+  return (
+    <div className="p-4">
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={() => setIsCreateOpen(true)}
+          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+        >
+          رزرو جدید
+        </button>
+      </div>
+
+      <FullCalendar
+        plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+        headerToolbar={{
+          left: "prev,next today",
+          center: "title",
+          right: "dayGridMonth,timeGridWeek,timeGridDay",
+        }}
+        initialView="timeGridWeek"
+        locales={[faLocale]}
+        locale="fa"
+        firstDay={6}
+        events={events}
+        slotMinTime="08:00:00"
+        slotMaxTime="20:00:00"
+        allDaySlot={false}
+        height="auto"
+        editable={true}
+        eventContent={(arg) => {
+          const isBlocked = arg.event.display === "background";
+          const user = arg.event.extendedProps.user as UserType;
+          if (isBlocked) return <div className="w-full h-full bg-gray-300 opacity-70 rounded-md" />;
+          return (
+            <div
+              className="flex items-center gap-2 text-white px-2 py-1 rounded-md"
+              style={{ backgroundColor: arg.event.backgroundColor || "#3b82f6" }}
+            >
+              {user?.avatar && <img src={user.avatar} alt={user.name} className="w-6 h-6 rounded-full" />}
+              <span className="text-sm">{arg.event.title}</span>
+            </div>
+          );
+        }}
+        eventClick={(info) => {
+          const ev = info.event.toPlainObject() as EventType;
+          setSelectedEvent(ev);
+          setEditTitle(ev.title);
+          setIsEditing(false);
+        }}
+      />
+
+      <Dialog isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)}>
+        <h2 className="text-lg font-semibold mb-4">رزرو جدید</h2>
+        <label className="block mb-2">انتخاب کاربر</label>
+        <select
+          value={newUser}
+          onChange={(e) => setNewUser(e.target.value)}
+          className="border p-2 rounded w-full mb-4"
+        >
+          <option value="">-- انتخاب کاربر --</option>
+          {users.map((u) => (
+            <option key={u.id} value={u.id}>{u.name}</option>
+          ))}
+        </select>
+        <label className="block mb-2">تاریخ شروع</label>
+        <DatePicker
+          value={newStart}
+          onChange={(date) => setNewStart(date?.toDate?.().toISOString() || "")}
+          format="YYYY/MM/DD HH:mm"
+          calendar={persian}
+          locale={persian_fa}
+          plugins={[<TimePicker position="bottom" />]}
+          className="border p-2 rounded w-full mb-4"
+        />
+        <label className="block mb-2">تاریخ پایان</label>
+        <DatePicker
+          value={newEnd}
+          onChange={(date) => setNewEnd(date?.toDate?.().toISOString() || "")}
+          format="YYYY/MM/DD HH:mm"
+          calendar={persian}
+          locale={persian_fa}
+          plugins={[<TimePicker position="bottom" />]}
+          className="border p-2 rounded w-full mb-4"
+        />
+        <label className="block mb-2">توضیحات</label>
+        <textarea
+          value={newDesc}
+          onChange={(e) => setNewDesc(e.target.value)}
+          className="border p-2 rounded w-full mb-4"
+        />
+        <div className="flex justify-between gap-3 mt-4">
+          <button onClick={() => setIsCreateOpen(false)} className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">بستن</button>
+          <button onClick={createEvent} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">ذخیره</button>
+        </div>
+      </Dialog>
+
+      <Dialog isOpen={!!selectedEvent} onClose={() => setSelectedEvent(null)}>
+        {selectedEvent && (
+          <>
+            <div className="flex justify-between items-center border-b pb-3">
+              <h2 className="text-lg font-semibold">جزئیات رزرو</h2>
+              <button onClick={() => setSelectedEvent(null)} className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300">✕</button>
+            </div>
+            <div className="flex-1 overflow-y-auto mt-4 space-y-4">
+              {selectedEvent.extendedProps?.user && (
+                <div className="flex items-center gap-3">
+                  <img src={selectedEvent.extendedProps.user.avatar} alt={selectedEvent.extendedProps.user.name} className="w-12 h-12 rounded-full" />
+                  <div>
+                    <p className="font-medium">{selectedEvent.extendedProps.user.name}</p>
+                    {!isEditing ? (
+                      <p className="text-gray-500 text-sm">{selectedEvent.title}</p>
+                    ) : (
+                      <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="border p-2 rounded w-full mt-2" />
+                    )}
+                  </div>
+                </div>
+              )}
+              {selectedEvent.extendedProps?.description && (
+                <p className="bg-gray-100 p-3 rounded-lg text-sm">{selectedEvent.extendedProps.description}</p>
+              )}
+              <div className="bg-gray-100 p-3 rounded-lg">
+                <p><span className="font-medium">شروع:</span> {new Date(selectedEvent.start).toLocaleString("fa-IR")}</p>
+                {selectedEvent.end && <p><span className="font-medium">پایان:</span> {new Date(selectedEvent.end).toLocaleString("fa-IR")}</p>}
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6 border-t pt-4">
+              {!isEditing ? (
+                <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">ویرایش</button>
+              ) : (
+                <button onClick={saveEvent} className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">ذخیره</button>
+              )}
+              <button onClick={deleteEvent} className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">حذف</button>
+            </div>
+          </>
+        )}
+      </Dialog>
+    </div>
+  );
+}
