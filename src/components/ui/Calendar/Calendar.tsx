@@ -17,6 +17,7 @@ import { EventType } from "@/app/types/types";
 interface CalendarProps {
   events: EventType[];
   onEventClick?: (event: EventType) => void;
+  onAvatarClick?: (user: any) => void; // <-- اضافه شد
   eventContent?: (arg: EventContentArg) => ReactNode;
   initialView?: CalendarOptions["initialView"];
   firstDay?: number;
@@ -34,6 +35,7 @@ interface CalendarProps {
 export default function Calendar({
   events,
   onEventClick,
+  onAvatarClick,
   eventContent,
   initialView = "timeGridWeek",
   firstDay = 6,
@@ -66,12 +68,11 @@ export default function Calendar({
     onEventClick(ev);
   };
 
-  // گروه بندی avatarها بر اساس روز
   const getDayAvatars = () => {
-    const map: Record<string, string[]> = {};
+    const map: Record<string, any[]> = {};
     events.forEach((e) => {
       const date = new Date(e.start).toDateString();
-      const avatar = e.extendedProps?.user?.avatar;
+      const avatar = e.extendedProps?.user;
       if (!avatar) return;
       if (!map[date]) map[date] = [];
       map[date].push(avatar);
@@ -79,7 +80,6 @@ export default function Calendar({
     return map;
   };
 
-  // اضافه کردن avatarها روی header هر بار که view تغییر می‌کند یا datesSet می‌شود
   const handleDatesSet = (arg: DatesSetArg) => {
     const dayAvatars = getDayAvatars();
     const headers = document.querySelectorAll(".fc-col-header-cell");
@@ -90,24 +90,26 @@ export default function Calendar({
 
       const avatars = dayAvatars[new Date(dateStr).toDateString()];
       if (!avatars || avatars.length === 0) {
-        // اگر قبلاً avatar اضافه شده بود پاک کن
         const existing = header.querySelector(".avatar-header");
         if (existing) existing.remove();
         return;
       }
 
-      // اگر قبلاً avatar اضافه شده بود پاک کن تا دوباره اضافه بشه
       const existing = header.querySelector(".avatar-header");
       if (existing) existing.remove();
 
-      // ایجاد div avatar
       const div = document.createElement("div");
       div.className = "avatar-header flex -space-x-2 justify-center mb-1";
 
-      avatars.slice(0, 3).forEach((av) => {
+      avatars.slice(0, 3).forEach((user) => {
         const img = document.createElement("img");
-        img.src = av;
-        img.className = "w-9 h-9 rounded-full border-2 border-white";
+        img.src = user.avatar;
+        img.className =
+          "w-6 h-6 rounded-full border-2 border-white cursor-pointer";
+        img.title = user.name;
+        img.addEventListener("click", () => {
+          if (onAvatarClick) onAvatarClick(user);
+        });
         div.appendChild(img);
       });
 
@@ -115,18 +117,17 @@ export default function Calendar({
       if (extra > 0) {
         const extraDiv = document.createElement("div");
         extraDiv.className =
-          "w-9 h-9 rounded-full bg-gray-100 font-thin -mr-3 text-xs flex items-center justify-center border-2 border-white";
+          "w-6 h-6 rounded-full bg-gray-300 text-xs flex items-center justify-center border-2 border-white cursor-pointer";
         extraDiv.innerText = `+${extra}`;
+        extraDiv.addEventListener("click", () => {
+          if (onAvatarClick) onAvatarClick(null);
+        });
         div.appendChild(extraDiv);
       }
 
-      // اضافه کردن avatar بالای روزها ولی **پایین عنوان روز**
       const titleDiv = header.querySelector(".fc-col-header-cell-cushion");
-      if (titleDiv) {
-        titleDiv.insertAdjacentElement("afterend", div);
-      } else {
-        header.prepend(div);
-      }
+      if (titleDiv) titleDiv.insertAdjacentElement("afterend", div);
+      else header.prepend(div);
     });
   };
 

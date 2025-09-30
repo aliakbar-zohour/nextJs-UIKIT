@@ -13,8 +13,10 @@ export default function CalendarPage() {
   const [users, setUsers] = useState<UserType[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<EventType | null>(null);
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
+  const [profileUser, setProfileUser] = useState<UserType | null>(null);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [createStep, setCreateStep] = useState(1);
 
   const [newDate, setNewDate] = useState("");
@@ -24,7 +26,6 @@ export default function CalendarPage() {
 
   const services = ["مو", "پوست", "ناخن", "ماساژ", "آرایش"];
 
-  // Fetch events
   useEffect(() => {
     async function fetchEvents() {
       const res = await fetch("/api/events");
@@ -34,7 +35,6 @@ export default function CalendarPage() {
     fetchEvents();
   }, []);
 
-  // Fetch users
   useEffect(() => {
     async function fetchUsers() {
       const res = await fetch("/api/users");
@@ -76,6 +76,12 @@ export default function CalendarPage() {
     setNewDesc("");
   }
 
+  const handleAvatarClick = (user: UserType) => {
+    if (!user) return;
+    setProfileUser(user);
+    setIsProfileOpen(true);
+  };
+
   return (
     <div className="p-6 font-vazir bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-6">
@@ -102,7 +108,11 @@ export default function CalendarPage() {
       </div>
 
       <div className="bg-white rounded-2xl shadow p-4">
-        <Calendar events={filteredEvents} onEventClick={setSelectedEvent} />
+        <Calendar
+          events={filteredEvents}
+          onEventClick={setSelectedEvent}
+          onAvatarClick={handleAvatarClick}
+        />
       </div>
 
       <Sidebar isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)}>
@@ -127,6 +137,19 @@ export default function CalendarPage() {
             onPrev={() => setCreateStep(1)}
             onSave={createEvent}
           />
+        )}
+      </Sidebar>
+
+      <Sidebar isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)}>
+        {profileUser && (
+          <div className="p-4 flex flex-col items-center">
+            <img
+              src={profileUser.avatar}
+              className="w-20 h-20 rounded-full mb-4 border-2 border-gray-300"
+            />
+            <h2 className="text-xl font-bold">{profileUser.name}</h2>
+            <p className="text-gray-500 mt-2">ID: {profileUser.id}</p>
+          </div>
         )}
       </Sidebar>
     </div>

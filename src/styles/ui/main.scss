@@ -2,3 +2,15 @@
   box-sizing: border-box;
   direction: rtl;
 }
+
+.fc-event-main {
+  display: flex;
+  justify-content: center;
+  text-align: center;
+}
+.fc-event-time {
+  font-size: 1.1rem !important;
+}
+.fc-event-title.fc-sticky {
+  font-size: 1.1rem;
+}

@@ -11,7 +11,7 @@ export default function EventItem({ event }: { event: EventType }) {
 
   return (
     <div
-      className="flex items-center gap-2 text-white px-2 py-1 rounded-md text-xs shadow-sm"
+      className="flex items-center  gap-2 text-white px-2 py-1 rounded-md text-md shadow-sm"
       style={{ backgroundColor: event.color || "#3b82f6" }}
     >
       {avatar && (
