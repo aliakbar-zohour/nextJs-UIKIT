@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { ReactNode } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { IoCloseOutline } from 'react-icons/io5';
-import Button from '../Button/Button';
+import { ReactNode } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { IoCloseOutline } from "react-icons/io5";
+import Button from "../Button/Button";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -17,8 +17,8 @@ const backdropVariants = {
 };
 
 const sidebarVariants = {
-  hidden: { x: '100%', opacity: 0 },
-  visible: { x: 0, opacity: 1 }, 
+  hidden: { x: "100%", opacity: 0 },
+  visible: { x: 0, opacity: 1 },
 };
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, children }) => {
@@ -35,20 +35,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, children }) => {
         >
           <motion.div
             className="bg-white border-l-[0.3px] border-gray-900 w-1/3 h-full p-6 relative shadow-2xl right-0"
-
             initial="hidden"
             animate="visible"
             exit="hidden"
             variants={sidebarVariants}
-            transition={{ type: 'tween', stiffness: 300, damping: 25 }}
+            transition={{ type: "tween", stiffness: 300, damping: 25 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <Button
+            <button
               onClick={onClose}
               className="absolute top-6 -left-14 scale-[1.4] bg-white border-[0.5px] w-8 p-1 h-8 cursor-pointer flex justify-center items-center text-xl text-gray-600 rounded-full hover:text-gray-900 transition shadow-xl"
             >
-              <IoCloseOutline  />
-            </Button>
+              <IoCloseOutline />
+            </button>
 
             {children}
           </motion.div>

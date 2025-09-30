@@ -1,3 +1,4 @@
+// src/components/ui/Button/Button.tsx
 import React from "react";
 import classNames from "classnames";
 
@@ -41,22 +42,23 @@ const Button: React.FC<ButtonProps> = ({
   };
 
   return (
-    <Button
+    <button
       onClick={onClick}
       disabled={disabled || loading}
       className={classNames(
         baseStyles,
         variants[variant],
         sizes[size],
-        (disabled || loading) && "opacity-60 cursor-not-allowed"
-      ,className) }
+        (disabled || loading) && "opacity-60 cursor-not-allowed",
+        className
+      )}
     >
       {loading ? (
         <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
       ) : (
         children
       )}
-    </Button>
+    </button>
   );
 };
 
