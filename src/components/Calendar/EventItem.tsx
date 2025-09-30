@@ -1,7 +1,6 @@
-// components/Calendar/EventItem.tsx
 import { EventType } from "@/app/types/types";
 
-export default function EventItem({ event }: { event: any }) {
+export default function EventItem({ event }: { event: EventType }) {
   const startTime = event.start
     ? new Date(event.start).toLocaleTimeString("fa-IR", {
         hour: "2-digit",
@@ -13,12 +12,12 @@ export default function EventItem({ event }: { event: any }) {
   return (
     <div
       className="flex items-center gap-2 text-white px-2 py-1 rounded-md text-xs shadow-sm"
-      style={{ backgroundColor: event.backgroundColor || "#3b82f6" }}
+      style={{ backgroundColor: event.color || "#3b82f6" }}
     >
       {avatar && (
         <img
           src={avatar}
-          className="w-5 h-5 rounded-full border border-white"
+          className="w-12 h-12 rounded-full border border-white"
         />
       )}
       <span>{event.title}</span>

@@ -22,7 +22,7 @@ const Button: React.FC<ButtonProps> = ({
   loading = false,
 }) => {
   const baseStyles =
-    "relative flex items-center justify-center rounded-xl font-medium shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2";
+    "relative flex items-center justify-center cursor-pointer rounded-xl font-medium shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2";
 
   const variants = {
     primary:

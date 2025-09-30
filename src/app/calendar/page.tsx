@@ -1,9 +1,9 @@
-// app/calendar/page.tsx
 "use client";
+
 import { useEffect, useState, useMemo } from "react";
 import Sidebar from "@/components/ui/SideBar/Sidebar";
 import Button from "@/components/ui/Button/Button";
-import Calendar from "@/components/Calendar/Calendar";
+import Calendar from "@/components/ui/Calendar/Calendar";
 import CreateStep1 from "@/components/Sidebar/CreateStep1";
 import CreateStep2 from "@/components/Sidebar/CreateStep2";
 import { UserType, EventType } from "@/app/types/types";
@@ -12,6 +12,7 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<EventType[]>([]);
   const [users, setUsers] = useState<UserType[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<EventType | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createStep, setCreateStep] = useState(1);
@@ -43,7 +44,10 @@ export default function CalendarPage() {
     fetchUsers();
   }, []);
 
-  const filteredEvents = useMemo(() => events, [events]);
+  const filteredEvents = useMemo(() => {
+    if (!selectedUser) return events;
+    return events.filter((e) => e.extendedProps?.user?.id === selectedUser.id);
+  }, [events, selectedUser]);
 
   async function createEvent() {
     if (!newDate || !newUser) return;
@@ -75,9 +79,26 @@ export default function CalendarPage() {
   return (
     <div className="p-6 font-vazir bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-6">
-        <Button onClick={() => setIsCreateOpen(true)} variant="outline">
-          + رزرو جدید
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setIsCreateOpen(true)} variant="outline">
+            + رزرو جدید
+          </Button>
+          <select
+            className="border rounded px-2 py-1"
+            value={selectedUser?.id || ""}
+            onChange={(e) => {
+              const user = users.find((u) => u.id === e.target.value) || null;
+              setSelectedUser(user);
+            }}
+          >
+            <option value="">همه کاربران</option>
+            {users.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl shadow p-4">

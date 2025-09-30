@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
-import Sidebar from './Sidebar';
+import React, { useState } from "react";
+import Sidebar from "./Sidebar";
+import Button from "../Button/Button";
 
 export default {
-  title: 'Components/Sidebar',
+  title: "Components/Sidebar",
   component: Sidebar,
   argTypes: {
-    isOpen: { control: 'boolean' },
-    onClose: { action: 'closed' },
+    isOpen: { control: "boolean" },
+    onClose: { action: "closed" },
   },
 };
 
@@ -53,16 +54,18 @@ LongContent.args = {
     <div className="space-y-4">
       <h2 className="text-xl font-bold">Long Content Sidebar</h2>
       <p>
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero.
-        Sed cursus ante dapibus diam. Sed nisi. Nulla quis sem at nibh elementum imperdiet. Duis
-        sagittis ipsum. Praesent mauris. Fusce nec tellus sed augue semper porta.
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec
+        odio. Praesent libero. Sed cursus ante dapibus diam. Sed nisi. Nulla
+        quis sem at nibh elementum imperdiet. Duis sagittis ipsum. Praesent
+        mauris. Fusce nec tellus sed augue semper porta.
       </p>
       <p>
-        Mauris massa. Vestibulum lacinia arcu eget nulla. Class aptent taciti sociosqu ad litora
-        torquent per conubia nostra, per inceptos himenaeos. Curabitur sodales ligula in libero.
+        Mauris massa. Vestibulum lacinia arcu eget nulla. Class aptent taciti
+        sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos.
+        Curabitur sodales ligula in libero.
       </p>
       <Button
-        onClick={() => alert('Button inside sidebar clicked!')}
+        onClick={() => alert("Button inside sidebar clicked!")}
         className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition"
       >
         Action Button
@@ -91,7 +94,7 @@ FormContent.args = {
         <Button
           type="Button"
           className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition"
-          onClick={() => alert('Cancelled')}
+          onClick={() => alert("Cancelled")}
         >
           Cancel
         </Button>
@@ -100,7 +103,7 @@ FormContent.args = {
           className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
           onClick={(e) => {
             e.preventDefault();
-            alert('Form submitted!');
+            alert("Form submitted!");
           }}
         >
           Submit
@@ -146,13 +149,13 @@ InteractiveContent.args = {
       <h2 className="text-xl font-bold">Interactive Sidebar</h2>
       <Button
         className="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 transition"
-        onClick={() => alert('Purple Button Clicked')}
+        onClick={() => alert("Purple Button Clicked")}
       >
         Click Me
       </Button>
       <Button
         className="px-4 py-2 bg-yellow-400 text-black rounded hover:bg-yellow-500 transition"
-        onClick={() => alert('Yellow Button Clicked')}
+        onClick={() => alert("Yellow Button Clicked")}
       >
         Another Action
       </Button>

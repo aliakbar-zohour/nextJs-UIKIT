@@ -32,7 +32,7 @@ export default function UserFilter({ users, onSelect }: UserFilterProps) {
                 }}
                 className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 cursor-pointer"
               >
-                <img src={u.avatar} className="w-8 h-8 rounded-full" />
+                <img src={u.avatar} className="w-12 h-12 rounded-full" />
                 <span>{u.name}</span>
               </div>
             ))}
