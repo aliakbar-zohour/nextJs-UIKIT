@@ -105,7 +105,7 @@ export default function Calendar({
         const img = document.createElement("img");
         img.src = user.avatar;
         img.className =
-          "w-6 h-6 rounded-full border-2 border-white cursor-pointer";
+          "w-9 h-9 rounded-full border-2 border-white cursor-pointer";
         img.title = user.name;
         img.addEventListener("click", () => {
           if (onAvatarClick) onAvatarClick(user);
@@ -117,7 +117,7 @@ export default function Calendar({
       if (extra > 0) {
         const extraDiv = document.createElement("div");
         extraDiv.className =
-          "w-6 h-6 rounded-full bg-gray-300 text-xs flex items-center justify-center border-2 border-white cursor-pointer";
+          "w-9 h-9 rounded-full bg-gray-100 -mr-3 text-xs flex items-center justify-center border-2 border-white cursor-pointer";
         extraDiv.innerText = `+${extra}`;
         extraDiv.addEventListener("click", () => {
           if (onAvatarClick) onAvatarClick(null);

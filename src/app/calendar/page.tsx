@@ -4,9 +4,8 @@ import { useEffect, useState, useMemo } from "react";
 import Sidebar from "@/components/ui/SideBar/Sidebar";
 import Button from "@/components/ui/Button/Button";
 import Calendar from "@/components/ui/Calendar/Calendar";
-import CreateStep1 from "@/components/Sidebar/CreateStep1";
-import CreateStep2 from "@/components/Sidebar/CreateStep2";
 import { UserType, EventType } from "@/app/types/types";
+import CreateEventForm from "@/widgets/CreateEventForm";
 
 export default function CalendarPage() {
   const [events, setEvents] = useState<EventType[]>([]);
@@ -17,14 +16,13 @@ export default function CalendarPage() {
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isEventOpen, setIsEventOpen] = useState(false); // 🔹 سایدبار ایونت
   const [createStep, setCreateStep] = useState(1);
 
   const [newDate, setNewDate] = useState("");
   const [newServices, setNewServices] = useState<string[]>([]);
   const [newUser, setNewUser] = useState<UserType | null>(null);
   const [newDesc, setNewDesc] = useState("");
-
-  const services = ["مو", "پوست", "ناخن", "ماساژ", "آرایش"];
 
   useEffect(() => {
     async function fetchEvents() {
@@ -82,6 +80,11 @@ export default function CalendarPage() {
     setIsProfileOpen(true);
   };
 
+  const handleEventClick = (event: EventType) => {
+    setSelectedEvent(event);
+    setIsEventOpen(true);
+  };
+
   return (
     <div className="p-6 font-vazir bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-6">
@@ -110,36 +113,29 @@ export default function CalendarPage() {
       <div className="bg-white rounded-2xl shadow p-4">
         <Calendar
           events={filteredEvents}
-          onEventClick={setSelectedEvent}
+          onEventClick={handleEventClick}
           onAvatarClick={handleAvatarClick}
         />
       </div>
 
+      {/* Sidebar برای ساخت ایونت */}
       <Sidebar isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)}>
-        {createStep === 1 && (
-          <CreateStep1
-            newDate={newDate}
-            setNewDate={setNewDate}
-            newServices={newServices}
-            setNewServices={setNewServices}
-            services={services}
-            onNext={() => setCreateStep(2)}
-            onClose={() => setIsCreateOpen(false)}
-          />
-        )}
-        {createStep === 2 && (
-          <CreateStep2
-            users={users}
-            newUser={newUser}
-            setNewUser={setNewUser}
-            newDesc={newDesc}
-            setNewDesc={setNewDesc}
-            onPrev={() => setCreateStep(1)}
-            onSave={createEvent}
-          />
-        )}
+        <CreateEventForm
+          users={users}
+          services={["جراحی بینی", "لیفت صورت", "مساج", "آموزش"]}
+          onClose={() => setIsCreateOpen(false)}
+          onSave={async (data) => {
+            const { date, user, services, desc } = data;
+            setNewDate(date);
+            setNewUser(user);
+            setNewServices(services);
+            setNewDesc(desc);
+            await createEvent();
+          }}
+        />
       </Sidebar>
 
+      {/* Sidebar پروفایل کاربر */}
       <Sidebar isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)}>
         {profileUser && (
           <div className="p-4 flex flex-col items-center">
@@ -149,6 +145,56 @@ export default function CalendarPage() {
             />
             <h2 className="text-xl font-bold">{profileUser.name}</h2>
             <p className="text-gray-500 mt-2">ID: {profileUser.id}</p>
+          </div>
+        )}
+      </Sidebar>
+
+      {/* 🔹 Sidebar جزئیات ایونت */}
+      <Sidebar isOpen={isEventOpen} onClose={() => setIsEventOpen(false)}>
+        {selectedEvent && (
+          <div className="p-4">
+            <h2 className="text-xl font-bold mb-2">{selectedEvent.title}</h2>
+            <p className="text-gray-600 mb-2">
+              <span className="font-semibold">شروع:</span>{" "}
+              {new Date(selectedEvent.start).toLocaleString("fa-IR")}
+            </p>
+            {selectedEvent.end && (
+              <p className="text-gray-600 mb-2">
+                <span className="font-semibold">پایان:</span>{" "}
+                {new Date(selectedEvent.end).toLocaleString("fa-IR")}
+              </p>
+            )}
+
+            {selectedEvent.extendedProps?.user && (
+              <div className="flex items-center gap-2 mb-2">
+                <img
+                  src={selectedEvent.extendedProps.user.avatar}
+                  className="w-10 h-10 rounded-full border"
+                />
+                <span>{selectedEvent.extendedProps.user.name}</span>
+              </div>
+            )}
+
+            {selectedEvent.extendedProps?.description && (
+              <p className="text-gray-700 mb-2">
+                <span className="font-semibold">توضیحات:</span>{" "}
+                {selectedEvent.extendedProps.description}
+              </p>
+            )}
+
+            {(() => {
+              const services = selectedEvent.extendedProps?.services ?? [];
+              return services.length > 0 ? (
+                <div className="mt-2">
+                  <p className="font-semibold">سرویس‌ها:</p>
+                  <ul className="list-disc list-inside text-gray-700">
+                    {services.map((s: string, i: number) => (
+                      <li key={i}>{s}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null;
+            })()}
           </div>
         )}
       </Sidebar>
