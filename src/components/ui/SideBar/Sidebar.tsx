@@ -34,7 +34,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, children }) => {
           onClick={onClose}
         >
           <motion.div
-            className="bg-white border-l-[0.3px] border-gray-900 w-1/3 h-full p-6 relative shadow-2xl right-0"
+            className="bg-white overflow-y-auto border-l-[0.3px] border-gray-900 w-1/3 h-full p-6 relative shadow-2xl right-0"
             initial="hidden"
             animate="visible"
             exit="hidden"

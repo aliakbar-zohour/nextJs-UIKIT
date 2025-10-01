@@ -1,133 +1,241 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Operator, EventType } from "@/app/types/types";
+import Button from "@/components/ui/Button/Button";
 import DatePicker from "react-multi-date-picker";
-import TimePicker from "react-multi-date-picker/plugins/time_picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
-import { Operator, Event } from "@/lib/mockData";
-import Button from "@/components/ui/Button/Button";
+import dayjs from "dayjs";
 
-interface CreateFormProps {
+interface CreateEventFormProps {
   operators: Operator[];
-  events: Event[];
+  events: EventType[];
+  onSave: (newEvent: EventType) => void;
   onClose: () => void;
-  onSave: (event: Event) => void;
 }
 
-export default function CreateEventForm({ operators, events, onClose, onSave }: CreateFormProps) {
-  const [selectedOperator, setSelectedOperator] = useState<Operator | null>(null);
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [services, setServices] = useState<string[]>([]);
+interface Service {
+  name: string;
+  duration: number;
+}
+
+const SERVICES: Service[] = [
+  { name: "ماساژ", duration: 30 },
+  { name: "اصلاح", duration: 20 },
+  { name: "مانیکور", duration: 40 },
+];
+
+export default function CreateEventForm({
+  operators,
+  events,
+  onSave,
+  onClose,
+}: CreateEventFormProps) {
+  const [title, setTitle] = useState("");
+  const [selectedOperator, setSelectedOperator] = useState<Operator | null>(
+    null
+  );
+  const [operatorQuery, setOperatorQuery] = useState("");
+  const [selectedDate, setSelectedDate] = useState<any>(null);
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [description, setDescription] = useState("");
-  const [availableTimes, setAvailableTimes] = useState<Date[]>([]);
+  const [freeIntervals, setFreeIntervals] = useState<
+    { start: string; end: string }[]
+  >([]);
+  const [selectedInterval, setSelectedInterval] = useState<{
+    start: string;
+    end: string;
+  } | null>(null);
 
+  // محاسبه مجموع زمان سرویس‌ها + 10 دقیقه
+  const totalDuration =
+    selectedServices.reduce((acc, s) => {
+      const service = SERVICES.find((svc) => svc.name === s);
+      return acc + (service?.duration || 0);
+    }, 0) + (selectedServices.length > 0 ? 10 : 0);
+
+  // پیدا کردن بازه‌های آزاد
   useEffect(() => {
-    if (!selectedOperator) return;
+    if (!selectedOperator || !selectedDate || selectedServices.length === 0)
+      return;
 
-    // محاسبه تایم‌های آزاد اپراتور در روز انتخاب شده
-    const times: Date[] = [];
-    for (let h = 8; h <= 17; h++) {
-      const start = new Date(selectedDate);
-      start.setHours(h, 0, 0, 0);
-      const end = new Date(start);
-      end.setHours(end.getHours() + 1);
+    const dateStr = dayjs(selectedDate.toDate()).format("YYYY-MM-DD");
 
-      const conflict = events.some(ev =>
-        ev.extendedProps.operator.id === selectedOperator.id &&
-        ((start >= new Date(ev.start) && start < new Date(ev.end)) ||
-         (end > new Date(ev.start) && end <= new Date(ev.end)))
-      );
-      if (!conflict) times.push(start);
+    const operatorEvents = events
+      .filter(
+        (e) =>
+          e.extendedProps.operator.id === selectedOperator.id &&
+          dayjs(e.start).format("YYYY-MM-DD") === dateStr
+      )
+      .map((e) => ({
+        start: dayjs(e.start),
+        end: e.end ? dayjs(e.end) : dayjs(e.start).add(30, "minute"),
+      }))
+      .sort((a, b) => a.start.valueOf() - b.start.valueOf());
+
+    const workStart = dayjs(`${dateStr}T08:00`);
+    const workEnd = dayjs(`${dateStr}T20:00`);
+
+    const free: { start: string; end: string }[] = [];
+    let lastEnd = workStart;
+
+    for (let ev of operatorEvents) {
+      if (ev.start.isAfter(lastEnd)) {
+        free.push({
+          start: lastEnd.format("HH:mm"),
+          end: ev.start.format("HH:mm"),
+        });
+      }
+      lastEnd = ev.end.isAfter(lastEnd) ? ev.end : lastEnd;
     }
-    setAvailableTimes(times);
-  }, [selectedOperator, selectedDate, events]);
 
-  const saveEvent = () => {
-    if (!selectedOperator || availableTimes.length === 0) {
-      alert("اپراتور انتخاب نشده یا تایم خالی وجود ندارد!");
+    if (lastEnd.isBefore(workEnd)) {
+      free.push({
+        start: lastEnd.format("HH:mm"),
+        end: workEnd.format("HH:mm"),
+      });
+    }
+
+    // فقط بازه‌هایی که ظرفیت totalDuration رو دارن
+    const validIntervals = free.filter((f) => {
+      const diff = dayjs(`${dateStr}T${f.end}`).diff(
+        dayjs(`${dateStr}T${f.start}`),
+        "minute"
+      );
+      return diff >= totalDuration;
+    });
+
+    setFreeIntervals(validIntervals);
+    setSelectedInterval(null);
+  }, [selectedOperator, selectedDate, selectedServices, events, totalDuration]);
+
+  const toggleService = (service: string) => {
+    setSelectedServices((prev) =>
+      prev.includes(service)
+        ? prev.filter((s) => s !== service)
+        : [...prev, service]
+    );
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title || !selectedOperator || !selectedInterval || !selectedDate) {
+      alert("لطفاً تمام فیلدها را پر کنید");
       return;
     }
 
-    const start = availableTimes[0];
-    const end = new Date(start);
-    end.setHours(end.getHours() + 1);
+    const dateStr = dayjs(selectedDate.toDate()).format("YYYY-MM-DD");
+    const startDateTime = dayjs(
+      `${dateStr}T${selectedInterval.start}`
+    ).toISOString();
+    const endDateTime = dayjs(startDateTime)
+      .add(totalDuration, "minute")
+      .toISOString();
 
-    const newEvent: Event = {
-      id: String(Date.now()),
-      title: `رزرو ${selectedOperator.name}`,
-      start: start.toISOString(),
-      end: end.toISOString(),
+    const newEvent: EventType = {
+      id: `${Date.now()}`,
+      title,
+      start: startDateTime,
+      end: endDateTime,
       extendedProps: {
         operator: selectedOperator,
-        services,
-        description,
+        services: selectedServices,
+        description: description || undefined,
       },
     };
+
     onSave(newEvent);
   };
 
-  const timePickerPlugin = <TimePicker position="bottom" />;
-
   return (
-    <div className="p-4 h-full flex flex-col justify-between">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-4">
+      <input
+        type="text"
+        placeholder="عنوان رزرو"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        className="border rounded px-3 py-2"
+      />
+
+      {/* انتخاب اپراتور ساده */}
+      <input
+        type="text"
+        placeholder="نام اپراتور..."
+        value={operatorQuery}
+        onChange={(e) => {
+          setOperatorQuery(e.target.value);
+          const op = operators.find((o) => o.name.includes(e.target.value));
+          setSelectedOperator(op || null);
+        }}
+        className="border rounded px-3 py-2"
+      />
+
       <div>
-        <h2 className="text-lg font-semibold mb-4 text-gray-700">رزرو جدید</h2>
-
-        <label className="block mb-2 text-sm text-gray-600">انتخاب اپراتور</label>
-        <select
-          className="border rounded-lg px-3 py-2 mb-4 w-full"
-          value={selectedOperator?.id || ""}
-          onChange={(e) => setSelectedOperator(operators.find(op => op.id === e.target.value) || null)}
-        >
-          <option value="">انتخاب اپراتور</option>
-          {operators.map(op => (
-            <option key={op.id} value={op.id}>{op.name} ({op.specialty})</option>
+        <label className="mb-1 block">سرویس‌ها:</label>
+        <div className="flex gap-2 flex-wrap">
+          {SERVICES.map((s) => (
+            <button
+              type="button"
+              key={s.name}
+              className={`px-3 py-1 border rounded ${
+                selectedServices.includes(s.name)
+                  ? "bg-blue-500 text-white"
+                  : "bg-white"
+              }`}
+              onClick={() => toggleService(s.name)}
+            >
+              {s.name} ({s.duration} دقیقه)
+            </button>
           ))}
-        </select>
+        </div>
+      </div>
 
-        <label className="block mb-2 text-sm text-gray-600">تاریخ رزرو</label>
+      <div>
+        <label className="mb-1 block">تاریخ رزرو:</label>
         <DatePicker
           value={selectedDate}
-          onChange={(d: any) => setSelectedDate(d.toDate())}
-          format="YYYY/MM/DD"
+          onChange={setSelectedDate}
           calendar={persian}
           locale={persian_fa}
-          className="border p-2 rounded-xl w-full mb-4"
+          className="border rounded px-3 py-2 w-full"
+          placeholder="تاریخ را انتخاب کنید"
         />
-
-        <label className="block mb-2 text-sm text-gray-600">سرویس‌ها</label>
-        <input
-          type="text"
-          value={services.join(", ")}
-          onChange={(e) => setServices(e.target.value.split(",").map(s => s.trim()))}
-          placeholder="مثلا: جراحی بینی, مساج"
-          className="border p-2 rounded-xl w-full mb-4"
-        />
-
-        <label className="block mb-2 text-sm text-gray-600">توضیحات</label>
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          className="border p-2 rounded-xl w-full mb-4"
-        />
-
-        <label className="block mb-2 text-sm text-gray-600">تایم‌های آزاد</label>
-        <ul className="list-disc list-inside text-gray-700 mb-4">
-          {availableTimes.length === 0 ? (
-            <li>تایم خالی وجود ندارد!</li>
-          ) : (
-            availableTimes.map((t, i) => (
-              <li key={i}>{t.getHours()}:00 - {t.getHours() + 1}:00</li>
-            ))
-          )}
-        </ul>
       </div>
 
-      <div className="flex gap-3">
-        <Button onClick={onClose} variant="secondary" className="w-full py-3">بستن</Button>
-        <Button onClick={saveEvent} variant="primary" className="w-full py-3">ذخیره</Button>
+      <div className="space-y-2">
+        {freeIntervals.length > 0 ? (
+          freeIntervals.map((f, i) => (
+            <div
+              key={i}
+              onClick={() => setSelectedInterval(f)}
+              className={`p-2 border rounded cursor-pointer ${
+                selectedInterval?.start === f.start
+                  ? "bg-green-500 text-white"
+                  : "bg-white"
+              }`}
+            >
+              از {f.start} تا {f.end} خالی است
+            </div>
+          ))
+        ) : (
+          <p>هیچ بازه آزادی برای این انتخاب وجود ندارد</p>
+        )}
       </div>
-    </div>
+
+      <textarea
+        placeholder="توضیحات"
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        className="border rounded px-3 py-2"
+      />
+
+      <div className="flex gap-2 justify-end mt-2">
+        <Button type="button" variant="outline" onClick={onClose}>
+          لغو
+        </Button>
+        <Button type="submit">ثبت رزرو</Button>
+      </div>
+    </form>
   );
 }

@@ -4,15 +4,22 @@ export interface UserType {
   avatar: string;
 }
 
-export interface EventType {
+export type Operator = {
+  id: string;
+  name: string;
+  avatar: string;
+  specialty: string;
+};
+
+export type EventType = {
   id: string;
   title: string;
   start: string;
-  end: string;
+  end?: string;
   color?: string;
-  extendedProps?: {
-    user?: UserType;
+  extendedProps: {
+    operator: Operator;
+    services: string[];
     description?: string;
-    services?: string[];
   };
-}
+};

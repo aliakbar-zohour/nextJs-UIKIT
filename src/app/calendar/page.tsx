@@ -3,15 +3,17 @@
 import { useEffect, useState, useMemo } from "react";
 import Sidebar from "@/components/ui/SideBar/Sidebar";
 import Button from "@/components/ui/Button/Button";
-import Calendar from "@/components/ui/Calendar/Calendar";
-import { Operator, Event } from "@/lib/mockData";
+import MyCalendar from "@/components/ui/Calendar/Calendar";
 import CreateEventForm from "@/widgets/CreateEventForm";
+import { Operator, EventType } from "@/app/types/types";
 
 export default function CalendarPage() {
   const [operators, setOperators] = useState<Operator[]>([]);
-  const [events, setEvents] = useState<Event[]>([]);
-const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [selectedOperator, setSelectedOperator] = useState<Operator | null>(null);
+  const [events, setEvents] = useState<EventType[]>([]);
+  const [selectedEvent, setSelectedEvent] = useState<EventType | null>(null);
+  const [selectedOperator, setSelectedOperator] = useState<Operator | null>(
+    null
+  );
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEventOpen, setIsEventOpen] = useState(false);
@@ -36,15 +38,17 @@ const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
   const filteredEvents = useMemo(() => {
     if (!selectedOperator) return events;
-    return events.filter(e => e.extendedProps.operator.id === selectedOperator.id);
+    return events.filter(
+      (e) => e.extendedProps.operator.id === selectedOperator.id
+    );
   }, [events, selectedOperator]);
 
-  const handleEventClick = (event: Event) => {
+  const handleEventClick = (event: EventType) => {
     setSelectedEvent(event);
     setIsEventOpen(true);
   };
 
-  const createEvent = async (newEvent: Event) => {
+  const createEvent = async (newEvent: EventType) => {
     const res = await fetch("/api/events", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -70,12 +74,12 @@ const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
             className="border rounded-lg px-3.5 gap-3 py-1"
             value={selectedOperator?.id || ""}
             onChange={(e) => {
-              const op = operators.find(o => o.id === e.target.value) || null;
+              const op = operators.find((o) => o.id === e.target.value) || null;
               setSelectedOperator(op);
             }}
           >
             <option value="">همه اپراتورها</option>
-            {operators.map(op => (
+            {operators.map((op) => (
               <option key={op.id} value={op.id}>
                 {op.name} ({op.specialty})
               </option>
@@ -85,11 +89,7 @@ const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
       </div>
 
       <div className="bg-white rounded-2xl shadow p-4">
-        <Calendar
-          events={filteredEvents}
-          onEventClick={handleEventClick}
-          
-        />
+        <MyCalendar events={filteredEvents} onEventClick={handleEventClick} />
       </div>
 
       {/* Sidebar برای ساخت ایونت */}
@@ -122,7 +122,10 @@ const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
                 src={selectedEvent.extendedProps.operator.avatar}
                 className="w-10 h-10 rounded-full border"
               />
-              <span>{selectedEvent.extendedProps.operator.name} ({selectedEvent.extendedProps.operator.specialty})</span>
+              <span>
+                {selectedEvent.extendedProps.operator.name} (
+                {selectedEvent.extendedProps.operator.specialty})
+              </span>
             </div>
             {selectedEvent.extendedProps.services.length > 0 && (
               <div className="mt-2">

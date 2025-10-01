@@ -32,7 +32,7 @@ interface CalendarProps {
   locale?: string;
 }
 
-export default function Calendar({
+export default function MyCalendar({
   events,
   onEventClick,
   onAvatarClick,
@@ -56,13 +56,17 @@ export default function Calendar({
   const handleEventClick = (info: EventClickArg) => {
     if (!onEventClick) return;
 
-    const ev = {
+    const ev: EventType = {
       id: info.event.id,
       title: info.event.title,
       start: info.event.start?.toISOString() || "",
       end: info.event.end?.toISOString(),
-      color: info.event.backgroundColor,
-      extendedProps: info.event.extendedProps,
+      color: info.event.backgroundColor || undefined,
+      extendedProps: {
+        operator: info.event.extendedProps.operator,
+        services: info.event.extendedProps.services || [],
+        description: info.event.extendedProps.description,
+      },
     };
 
     onEventClick(ev);
@@ -72,7 +76,7 @@ export default function Calendar({
     const map: Record<string, any[]> = {};
     events.forEach((e) => {
       const date = new Date(e.start).toDateString();
-      const avatar = e.extendedProps?.user;
+      const avatar = e.extendedProps?.operator;
       if (!avatar) return;
       if (!map[date]) map[date] = [];
       map[date].push(avatar);
@@ -89,14 +93,10 @@ export default function Calendar({
       if (!dateStr) return;
 
       const avatars = dayAvatars[new Date(dateStr).toDateString()];
-      if (!avatars || avatars.length === 0) {
-        const existing = header.querySelector(".avatar-header");
-        if (existing) existing.remove();
-        return;
-      }
-
       const existing = header.querySelector(".avatar-header");
       if (existing) existing.remove();
+
+      if (!avatars || avatars.length === 0) return;
 
       const div = document.createElement("div");
       div.className = "avatar-header flex -space-x-2 justify-center mb-1";
