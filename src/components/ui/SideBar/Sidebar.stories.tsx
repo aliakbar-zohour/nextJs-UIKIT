@@ -3,7 +3,7 @@ import Sidebar from "./Sidebar";
 import Button from "../Button/Button";
 
 export default {
-  title: "Components/Sidebar",
+  title: "UI/Sidebar",
   component: Sidebar,
   argTypes: {
     isOpen: { control: "boolean" },

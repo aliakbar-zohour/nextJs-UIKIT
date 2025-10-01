@@ -1,11 +1,12 @@
 // Calendar.stories.tsx
 import React from "react";
 import { Meta, StoryFn } from "@storybook/react";
-import Calendar, { CalendarProps, EventType } from "./Calendar";
 import { EventContentArg } from "@fullcalendar/core";
+import Calendar from "./Calendar";
+import { EventType } from "@/app/types/types";
 
 export default {
-  title: "Components/Calendar",
+  title: "UI/Calendar",
   component: Calendar,
   argTypes: {
     onEventClick: { action: "event clicked" },
@@ -44,7 +45,9 @@ const sampleEvents: EventType[] = [
   },
 ];
 
-const Template: StoryFn<CalendarProps> = (args) => <Calendar {...args} />;
+const Template: StoryFn<React.ComponentProps<typeof Calendar>> = (args) => (
+  <Calendar {...args} />
+);
 
 export const Default = Template.bind({});
 Default.args = { events: sampleEvents };

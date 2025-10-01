@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import Dialog from './Dialog';
+import Button from '../Button/Button';
 
 export default {
-  title: 'Components/Dialog',
+  title: 'UI/Dialog',
   component: Dialog,
   argTypes: {
     isOpen: { control: 'boolean' },

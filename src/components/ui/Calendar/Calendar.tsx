@@ -17,7 +17,7 @@ import { EventType } from "@/app/types/types";
 interface CalendarProps {
   events: EventType[];
   onEventClick?: (event: EventType) => void;
-  onAvatarClick?: (user: any) => void; // <-- اضافه شد
+  onAvatarClick?: (user: any) => void;
   eventContent?: (arg: EventContentArg) => ReactNode;
   initialView?: CalendarOptions["initialView"];
   firstDay?: number;

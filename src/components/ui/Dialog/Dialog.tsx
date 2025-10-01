@@ -42,12 +42,12 @@ const Dialog: React.FC<DialogProps> = ({ isOpen, onClose, children }) => {
             onClick={(e) => e.stopPropagation()}
           >
 
-            <Button
+            <button
               onClick={onClose}
               className="absolute top-4 right-4 scale-150 text-gray-600 hover:text-gray-900 dark:hover:text-white transition"
             >
               ✕
-            </Button>
+            </button>
 
             {children}
           </motion.div>

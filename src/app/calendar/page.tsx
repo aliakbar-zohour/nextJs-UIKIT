@@ -86,14 +86,14 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="p-6 font-vazir bg-gray-50 min-h-screen">
+    <div className="p-6 font-vazir min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <div className="flex gap-2">
           <Button onClick={() => setIsCreateOpen(true)} variant="outline">
             + رزرو جدید
           </Button>
           <select
-            className="border rounded px-2 py-1"
+            className="border rounded-lg px-3.5 gap-3 py-1"
             value={selectedUser?.id || ""}
             onChange={(e) => {
               const user = users.find((u) => u.id === e.target.value) || null;

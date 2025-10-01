@@ -31,6 +31,7 @@ export default function CreateEventForm({
   const [newServices, setNewServices] = useState<string[]>([]);
   const [newUser, setNewUser] = useState<UserType | null>(null);
   const [newDesc, setNewDesc] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const d = new Date();
@@ -41,23 +42,40 @@ export default function CreateEventForm({
   const timePickerPlugin = <TimePicker position="bottom" />;
 
   const saveEvent = async () => {
-    const payload = {
-      start: newDate,
-      end: newDate,
-      title: newServices.join(", ") || "بدون عنوان",
-      extendedProps: { user: newUser, desc: newDesc, services: newServices },
-    };
-    await fetch("/api/events", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    onSave({
-      date: newDate,
-      services: newServices,
-      user: newUser,
-      desc: newDesc,
-    });
+    if (loading) return;
+    setLoading(true);
+    try {
+      const payload = {
+        start: newDate,
+        end: newDate,
+        title: newServices.join(", ") || "بدون عنوان",
+        extendedProps: { user: newUser, desc: newDesc, services: newServices },
+      };
+
+      const res = await fetch("/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        throw new Error("خطا در ذخیره اطلاعات");
+      }
+
+      onSave({
+        date: newDate,
+        services: newServices,
+        user: newUser,
+        desc: newDesc,
+      });
+
+ 
+      onClose();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -157,15 +175,17 @@ export default function CreateEventForm({
               variant="secondary"
               onClick={() => setStep(1)}
               className="w-full py-3"
+              loading={loading}
             >
               قبلی
             </Button>
             <Button
               variant="primary"
               onClick={saveEvent}
-              className="w-full py-3"
+              className="w-full py-3 flex items-center justify-center"
+              loading={loading}
             >
-              ذخیره
+              {loading ? "در حال ذخیره..." : "ذخیره"}
             </Button>
           </div>
         </div>
