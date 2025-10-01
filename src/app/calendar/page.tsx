@@ -4,25 +4,17 @@ import { useEffect, useState, useMemo } from "react";
 import Sidebar from "@/components/ui/SideBar/Sidebar";
 import Button from "@/components/ui/Button/Button";
 import Calendar from "@/components/ui/Calendar/Calendar";
-import { UserType, EventType } from "@/app/types/types";
+import { Operator, Event } from "@/lib/mockData";
 import CreateEventForm from "@/widgets/CreateEventForm";
 
 export default function CalendarPage() {
-  const [events, setEvents] = useState<EventType[]>([]);
-  const [users, setUsers] = useState<UserType[]>([]);
-  const [selectedEvent, setSelectedEvent] = useState<EventType | null>(null);
-  const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
-  const [profileUser, setProfileUser] = useState<UserType | null>(null);
+  const [operators, setOperators] = useState<Operator[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
+const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [selectedOperator, setSelectedOperator] = useState<Operator | null>(null);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isEventOpen, setIsEventOpen] = useState(false); // 🔹 سایدبار ایونت
-  const [createStep, setCreateStep] = useState(1);
-
-  const [newDate, setNewDate] = useState("");
-  const [newServices, setNewServices] = useState<string[]>([]);
-  const [newUser, setNewUser] = useState<UserType | null>(null);
-  const [newDesc, setNewDesc] = useState("");
+  const [isEventOpen, setIsEventOpen] = useState(false);
 
   useEffect(() => {
     async function fetchEvents() {
@@ -34,55 +26,37 @@ export default function CalendarPage() {
   }, []);
 
   useEffect(() => {
-    async function fetchUsers() {
-      const res = await fetch("/api/users");
+    async function fetchOperators() {
+      const res = await fetch("/api/operators");
       const data = await res.json();
-      setUsers(data);
+      setOperators(data);
     }
-    fetchUsers();
+    fetchOperators();
   }, []);
 
   const filteredEvents = useMemo(() => {
-    if (!selectedUser) return events;
-    return events.filter((e) => e.extendedProps?.user?.id === selectedUser.id);
-  }, [events, selectedUser]);
+    if (!selectedOperator) return events;
+    return events.filter(e => e.extendedProps.operator.id === selectedOperator.id);
+  }, [events, selectedOperator]);
 
-  async function createEvent() {
-    if (!newDate || !newUser) return;
-    const newEvent: EventType = {
-      id: String(Date.now()),
-      title: newUser.name,
-      start: newDate,
-      color: "#10b981",
-      extendedProps: {
-        user: newUser,
-        description: newDesc,
-        services: newServices,
-      },
-    };
-    await fetch("/api/events", {
+  const handleEventClick = (event: Event) => {
+    setSelectedEvent(event);
+    setIsEventOpen(true);
+  };
+
+  const createEvent = async (newEvent: Event) => {
+    const res = await fetch("/api/events", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newEvent),
     });
-    setEvents((prev) => [...prev, newEvent]);
-    setIsCreateOpen(false);
-    setCreateStep(1);
-    setNewDate("");
-    setNewServices([]);
-    setNewUser(null);
-    setNewDesc("");
-  }
-
-  const handleAvatarClick = (user: UserType) => {
-    if (!user) return;
-    setProfileUser(user);
-    setIsProfileOpen(true);
-  };
-
-  const handleEventClick = (event: EventType) => {
-    setSelectedEvent(event);
-    setIsEventOpen(true);
+    const data = await res.json();
+    if (data.success) {
+      setEvents(data.events);
+      setIsCreateOpen(false);
+    } else {
+      alert(data.error || "خطا در ثبت رزرو");
+    }
   };
 
   return (
@@ -94,16 +68,16 @@ export default function CalendarPage() {
           </Button>
           <select
             className="border rounded-lg px-3.5 gap-3 py-1"
-            value={selectedUser?.id || ""}
+            value={selectedOperator?.id || ""}
             onChange={(e) => {
-              const user = users.find((u) => u.id === e.target.value) || null;
-              setSelectedUser(user);
+              const op = operators.find(o => o.id === e.target.value) || null;
+              setSelectedOperator(op);
             }}
           >
-            <option value="">همه کاربران</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.name}
+            <option value="">همه اپراتورها</option>
+            {operators.map(op => (
+              <option key={op.id} value={op.id}>
+                {op.name} ({op.specialty})
               </option>
             ))}
           </select>
@@ -114,42 +88,21 @@ export default function CalendarPage() {
         <Calendar
           events={filteredEvents}
           onEventClick={handleEventClick}
-          onAvatarClick={handleAvatarClick}
+          
         />
       </div>
 
       {/* Sidebar برای ساخت ایونت */}
       <Sidebar isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)}>
         <CreateEventForm
-          users={users}
-          services={["جراحی بینی", "لیفت صورت", "مساج", "آموزش"]}
+          operators={operators}
+          events={events}
+          onSave={createEvent}
           onClose={() => setIsCreateOpen(false)}
-          onSave={async (data) => {
-            const { date, user, services, desc } = data;
-            setNewDate(date);
-            setNewUser(user);
-            setNewServices(services);
-            setNewDesc(desc);
-            await createEvent();
-          }}
         />
       </Sidebar>
 
-      {/* Sidebar پروفایل کاربر */}
-      <Sidebar isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)}>
-        {profileUser && (
-          <div className="p-4 flex flex-col items-center">
-            <img
-              src={profileUser.avatar}
-              className="w-20 h-20 rounded-full mb-4 border-2 border-gray-300"
-            />
-            <h2 className="text-xl font-bold">{profileUser.name}</h2>
-            <p className="text-gray-500 mt-2">ID: {profileUser.id}</p>
-          </div>
-        )}
-      </Sidebar>
-
-      {/* 🔹 Sidebar جزئیات ایونت */}
+      {/* Sidebar جزئیات ایونت */}
       <Sidebar isOpen={isEventOpen} onClose={() => setIsEventOpen(false)}>
         {selectedEvent && (
           <div className="p-4">
@@ -164,37 +117,23 @@ export default function CalendarPage() {
                 {new Date(selectedEvent.end).toLocaleString("fa-IR")}
               </p>
             )}
-
-            {selectedEvent.extendedProps?.user && (
-              <div className="flex items-center gap-2 mb-2">
-                <img
-                  src={selectedEvent.extendedProps.user.avatar}
-                  className="w-10 h-10 rounded-full border"
-                />
-                <span>{selectedEvent.extendedProps.user.name}</span>
+            <div className="flex items-center gap-2 mb-2">
+              <img
+                src={selectedEvent.extendedProps.operator.avatar}
+                className="w-10 h-10 rounded-full border"
+              />
+              <span>{selectedEvent.extendedProps.operator.name} ({selectedEvent.extendedProps.operator.specialty})</span>
+            </div>
+            {selectedEvent.extendedProps.services.length > 0 && (
+              <div className="mt-2">
+                <p className="font-semibold">سرویس‌ها:</p>
+                <ul className="list-disc list-inside text-gray-700">
+                  {selectedEvent.extendedProps.services.map((s, i) => (
+                    <li key={i}>{s}</li>
+                  ))}
+                </ul>
               </div>
             )}
-
-            {selectedEvent.extendedProps?.description && (
-              <p className="text-gray-700 mb-2">
-                <span className="font-semibold">توضیحات:</span>{" "}
-                {selectedEvent.extendedProps.description}
-              </p>
-            )}
-
-            {(() => {
-              const services = selectedEvent.extendedProps?.services ?? [];
-              return services.length > 0 ? (
-                <div className="mt-2">
-                  <p className="font-semibold">سرویس‌ها:</p>
-                  <ul className="list-disc list-inside text-gray-700">
-                    {services.map((s: string, i: number) => (
-                      <li key={i}>{s}</li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null;
-            })()}
           </div>
         )}
       </Sidebar>

@@ -8,7 +8,7 @@ export interface EventType {
   id: string;
   title: string;
   start: string;
-  end?: string;
+  end: string;
   color?: string;
   extendedProps?: {
     user?: UserType;

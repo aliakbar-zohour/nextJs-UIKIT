@@ -82,7 +82,7 @@ export default function EventsPage() {
 
   const downloadPDF = () => {
     const doc = new jsPDF({ orientation: "landscape" });
-    doc.setFont("vazir", "normal");
+    doc.setFont("public/fonts/YekanBakhFaNum-Regular.otf","yekan",10);
     doc.text("لیست ایونت‌ها", 14, 10);
 
     const tableData = events.map((ev) => [
