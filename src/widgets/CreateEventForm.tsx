@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Operator, EventType } from "@/app/types/types";
 import Button from "@/components/ui/Button/Button";
+import { useToastHelpers } from "@/components/ui/Toast/useToast";
 import DatePicker from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
@@ -32,6 +33,7 @@ export default function CreateEventForm({
   onSave,
   onClose,
 }: CreateEventFormProps) {
+  const toast = useToastHelpers();
   const [title, setTitle] = useState("");
   const [selectedOperator, setSelectedOperator] = useState<Operator | null>(
     null
@@ -121,7 +123,9 @@ export default function CreateEventForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !selectedOperator || !selectedInterval || !selectedDate) {
-      alert("لطفاً تمام فیلدها را پر کنید");
+      toast.warning("لطفاً تمام فیلدها را پر کنید", {
+        title: "اطلاعات ناقص"
+      });
       return;
     }
 

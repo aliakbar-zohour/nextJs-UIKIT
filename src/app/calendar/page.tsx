@@ -5,9 +5,12 @@ import Sidebar from "@/components/ui/SideBar/Sidebar";
 import Button from "@/components/ui/Button/Button";
 import MyCalendar from "@/components/ui/Calendar/Calendar";
 import CreateEventForm from "@/widgets/CreateEventForm";
+import { ToastProvider } from "@/components/ui/Toast/ToastProvider";
+import { useToastHelpers } from "@/components/ui/Toast/useToast";
 import { Operator, EventType } from "@/app/types/types";
 
-export default function CalendarPage() {
+function CalendarPageContent() {
+  const toast = useToastHelpers();
   const [operators, setOperators] = useState<Operator[]>([]);
   const [events, setEvents] = useState<EventType[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<EventType | null>(null);
@@ -48,6 +51,23 @@ export default function CalendarPage() {
     setIsEventOpen(true);
   };
 
+  // Handle adding new event from calendar cell click
+  const handleAddEvent = (dateStr: string) => {
+    // You can set a default time or open form with pre-filled date
+    console.log("Adding event for date:", dateStr);
+    setIsCreateOpen(true);
+    // TODO: Pass the selected date to the form
+  };
+
+  // Handle blocking a day
+  const handleBlockDay = (dateStr: string) => {
+    console.log("Blocking day:", dateStr);
+    // TODO: Implement day blocking logic
+    toast.success(`روز ${new Date(dateStr).toLocaleDateString("fa-IR")} بلاک شد`, {
+      title: "روز بلاک شد"
+    });
+  };
+
   const createEvent = async (newEvent: EventType) => {
     const res = await fetch("/api/events", {
       method: "POST",
@@ -58,8 +78,13 @@ export default function CalendarPage() {
     if (data.success) {
       setEvents(data.events);
       setIsCreateOpen(false);
+      toast.success("رزرو با موفقیت ثبت شد", {
+        title: "موفق"
+      });
     } else {
-      alert(data.error || "خطا در ثبت رزرو");
+      toast.error(data.error || "خطا در ثبت رزرو", {
+        title: "خطا"
+      });
     }
   };
 
@@ -89,7 +114,12 @@ export default function CalendarPage() {
       </div>
 
       <div className="bg-white rounded-2xl shadow p-4">
-        <MyCalendar events={filteredEvents} onEventClick={handleEventClick} />
+        <MyCalendar 
+          events={filteredEvents} 
+          onEventClick={handleEventClick}
+          onAddEvent={handleAddEvent}
+          onBlockDay={handleBlockDay}
+        />
       </div>
 
       {/* Sidebar برای ساخت ایونت */}
@@ -141,5 +171,13 @@ export default function CalendarPage() {
         )}
       </Sidebar>
     </div>
+  );
+}
+
+export default function CalendarPage() {
+  return (
+    <ToastProvider maxToasts={3} defaultPosition="top-right">
+      <CalendarPageContent />
+    </ToastProvider>
   );
 }

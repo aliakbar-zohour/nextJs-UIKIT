@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
-import { users } from "@/lib/mockData";
+import { operators } from "@/lib/mockData";
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const q = searchParams.get("q") || "";
 
-    let result = users;
+    let result = operators;
     if (q) {
-      result = users.filter((user) =>
-        user.name.toLowerCase().includes(q.toLowerCase())
+      result = operators.filter((operator) =>
+        operator.name.toLowerCase().includes(q.toLowerCase())
       );
     }
     return NextResponse.json(result);
