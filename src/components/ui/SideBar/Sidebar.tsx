@@ -34,7 +34,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, children }) => {
           onClick={onClose}
         >
           <motion.div
-            className="bg-white overflow-y-auto border-l-[0.3px] border-gray-900 w-1/3 h-full p-6 relative shadow-2xl right-0"
+            className="bg-white border-l border-gray-300 w-1/3 h-full p-6 relative shadow-2xl right-0"
             initial="hidden"
             animate="visible"
             exit="hidden"
@@ -42,14 +42,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, children }) => {
             transition={{ type: "tween", stiffness: 300, damping: 25 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <button
+            <Button
               onClick={onClose}
-              className="absolute top-6 -left-14 scale-[1.4] bg-white border-[0.5px] w-8 p-1 h-8 cursor-pointer flex justify-center items-center text-xl text-gray-600 rounded-full hover:text-gray-900 transition shadow-xl"
-            >
-              <IoCloseOutline />
-            </button>
+              variant="custom"
+              shape="circle"
+              size="md"
+              icon={<IoCloseOutline />}
+              className="absolute top-4 -left-16 bg-white border border-gray-200 w-12 h-12 text-gray-500 hover:text-gray-700 hover:bg-gray-50 shadow-sm"
+            />
 
+            <div className="h-full w-full overflow-y-auto">
             {children}
+            </div>
           </motion.div>
         </motion.div>
       )}
