@@ -7,17 +7,21 @@ import {
   EventContentArg,
   DatesSetArg,
 } from "@fullcalendar/core";
+import { DateClickArg } from "@fullcalendar/interaction";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import faLocale from "@fullcalendar/core/locales/fa";
-import { ReactNode } from "react";
+import { ReactNode, useState, useRef, useEffect } from "react";
 import { EventType } from "@/app/types/types";
+import Dropdown from "../DropDown/DropDown";
 
 interface CalendarProps {
   events: EventType[];
   onEventClick?: (event: EventType) => void;
   onAvatarClick?: (user: any) => void;
+  onAddEvent?: (date: string) => void;
+  onBlockDay?: (date: string) => void;
   eventContent?: (arg: EventContentArg) => ReactNode;
   initialView?: CalendarOptions["initialView"];
   firstDay?: number;
@@ -36,6 +40,8 @@ export default function MyCalendar({
   events,
   onEventClick,
   onAvatarClick,
+  onAddEvent,
+  onBlockDay,
   eventContent,
   initialView = "timeGridWeek",
   firstDay = 6,
@@ -53,6 +59,73 @@ export default function MyCalendar({
   height = "auto",
   locale = "fa",
 }: CalendarProps) {
+  // State for dropdown management
+  const [dropdownState, setDropdownState] = useState<{
+    isOpen: boolean;
+    position: { x: number; y: number };
+    date: string | null;
+  }>({
+    isOpen: false,
+    position: { x: 0, y: 0 },
+    date: null,
+  });
+  
+  const calendarRef = useRef<HTMLDivElement>(null);
+
+  // Handle date cell click to show dropdown
+  const handleDateClick = (info: DateClickArg) => {
+    const rect = info.jsEvent.target as HTMLElement;
+    const calendarRect = calendarRef.current?.getBoundingClientRect();
+    
+    if (calendarRect) {
+      setDropdownState({
+        isOpen: true,
+        position: {
+          x: info.jsEvent.clientX - calendarRect.left,
+          y: info.jsEvent.clientY - calendarRect.top,
+        },
+        date: info.dateStr,
+      });
+    }
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownState.isOpen && calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
+        setDropdownState(prev => ({ ...prev, isOpen: false }));
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [dropdownState.isOpen]);
+
+  // Dropdown menu items
+  const dropdownItems = [
+    {
+      label: "اضافه کردن رویداد",
+      value: "add-event",
+    },
+    {
+      label: "بلاک کردن روز",
+      value: "block-day",
+    },
+  ];
+
+  // Handle dropdown item selection
+  const handleDropdownSelect = (item: { label: string; value?: any }) => {
+    if (!dropdownState.date || !item.value) return;
+
+    if (item.value === "add-event" && onAddEvent) {
+      onAddEvent(dropdownState.date);
+    } else if (item.value === "block-day" && onBlockDay) {
+      onBlockDay(dropdownState.date);
+    }
+
+    setDropdownState(prev => ({ ...prev, isOpen: false }));
+  };
+
   const handleEventClick = (info: EventClickArg) => {
     if (!onEventClick) return;
 
@@ -132,23 +205,44 @@ export default function MyCalendar({
   };
 
   return (
-    <FullCalendar
-      plugins={plugins}
-      headerToolbar={headerToolbar}
-      initialView={initialView}
-      locales={[faLocale]}
-      locale={locale}
-      firstDay={firstDay}
-      events={events}
-      slotMinTime={slotMinTime}
-      slotMaxTime={slotMaxTime}
-      allDaySlot={allDaySlot}
-      editable={editable}
-      slotDuration={slotDuration}
-      height={height}
-      eventContent={eventContent}
-      eventClick={handleEventClick}
-      datesSet={handleDatesSet}
-    />
+    <div ref={calendarRef} className="relative">
+      <FullCalendar
+        plugins={plugins}
+        headerToolbar={headerToolbar}
+        initialView={initialView}
+        locales={[faLocale]}
+        locale={locale}
+        firstDay={firstDay}
+        events={events}
+        slotMinTime={slotMinTime}
+        slotMaxTime={slotMaxTime}
+        allDaySlot={allDaySlot}
+        editable={editable}
+        slotDuration={slotDuration}
+        height={height}
+        eventContent={eventContent}
+        eventClick={handleEventClick}
+        dateClick={handleDateClick}
+        datesSet={handleDatesSet}
+      />
+      
+      {/* Dropdown positioned absolutely */}
+      {dropdownState.isOpen && (
+        <div
+          className="absolute z-50"
+          style={{
+            left: dropdownState.position.x,
+            top: dropdownState.position.y,
+          }}
+        >
+          <Dropdown
+            items={dropdownItems}
+            onSelect={handleDropdownSelect}
+            isOpen={true}
+            onClose={() => setDropdownState(prev => ({ ...prev, isOpen: false }))}
+          />
+        </div>
+      )}
+    </div>
   );
 }
