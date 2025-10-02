@@ -1,8 +1,16 @@
-@import url("https://cdn.fontcdn.ir/Font/Persian/Vazir/Vazir.css");
-
-.font-vazir {
-  font-family: Vazir, sans-serif;
-}
-
+@import "../styles/ui/_fonts.scss";
 @import "../styles/ui/main.scss";
 @import "../styles/tailwind/tailwind.scss";
+
+* {
+  font-family: 'YekanBakh', 'Tahoma', sans-serif;
+}
+
+body {
+  font-family: 'YekanBakh', 'Tahoma', sans-serif;
+  direction: rtl;
+}
+
+.font-yekan {
+  font-family: 'YekanBakh', 'Tahoma', sans-serif;
+}

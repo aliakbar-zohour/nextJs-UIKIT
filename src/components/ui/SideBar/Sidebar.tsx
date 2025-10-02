@@ -47,13 +47,17 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, children }) => {
               variant="custom"
               shape="circle"
               size="md"
-              icon={<IoCloseOutline />}
-              className="absolute top-4 -left-16 bg-white border border-gray-200 w-12 h-12 text-gray-500 hover:text-gray-700 hover:bg-gray-50 shadow-sm"
+              icon={<IoCloseOutline className="text-gray-500 font-bold" />}
+              className="bg-white border border-gray-200 w-12 h-12 text-gray-500 hover:text-gray-700 hover:bg-gray-50 shadow-xl "
+              style={{
+                position: "absolute",
+                top: ".7rem",
+                left: "-3.7rem",
+                zIndex: 1000,
+              }}
             />
 
-            <div className="h-full w-full overflow-y-auto">
-            {children}
-            </div>
+            <div className="h-full w-full overflow-y-auto">{children}</div>
           </motion.div>
         </motion.div>
       )}

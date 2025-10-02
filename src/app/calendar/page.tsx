@@ -68,24 +68,10 @@ function CalendarPageContent() {
     });
   };
 
-  const createEvent = async (newEvent: EventType) => {
-    const res = await fetch("/api/events", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newEvent),
-    });
-    const data = await res.json();
-    if (data.success) {
-      setEvents(data.events);
-      setIsCreateOpen(false);
-      toast.success("رزرو با موفقیت ثبت شد", {
-        title: "موفق"
-      });
-    } else {
-      toast.error(data.error || "خطا در ثبت رزرو", {
-        title: "خطا"
-      });
-    }
+  const handleEventSave = (newEvent: EventType) => {
+    // Add the new event immediately to the events list
+    setEvents(prevEvents => [...prevEvents, newEvent]);
+    setIsCreateOpen(false);
   };
 
   return (
@@ -127,7 +113,7 @@ function CalendarPageContent() {
         <CreateEventForm
           operators={operators}
           events={events}
-          onSave={createEvent}
+          onSave={handleEventSave}
           onClose={() => setIsCreateOpen(false)}
         />
       </Sidebar>

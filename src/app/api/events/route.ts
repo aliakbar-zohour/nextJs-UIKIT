@@ -11,19 +11,22 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    // بررسی اپراتور
     const operator = operators.find((o) => o.id === body.extendedProps.operator.id);
     if (!operator) {
       return NextResponse.json({ success: false, error: "Operator not found" }, { status: 400 });
     }
     body.extendedProps.operator = operator;
-
-    // بررسی اینکه تایم خالی است یا نه
-    const conflict = events.some(ev =>
-      ev.extendedProps.operator.id === operator.id &&
-      ((new Date(body.start) >= new Date(ev.start) && new Date(body.start) < new Date(ev.end)) ||
-       (new Date(body.end) > new Date(ev.start) && new Date(body.end) <= new Date(ev.end)))
-    );
+    const newStart = new Date(body.start);
+    const newEnd = new Date(body.end);
+    
+    const conflict = events.some(ev => {
+      if (ev.extendedProps.operator.id !== operator.id) return false;
+      
+      const existingStart = new Date(ev.start);
+      const existingEnd = new Date(ev.end);
+      
+      return newStart < existingEnd && newEnd > existingStart;
+    });
 
     if (conflict) {
       return NextResponse.json({ success: false, error: "این اپراتور در این تایم رزرو دارد" }, { status: 409 });
@@ -32,7 +35,7 @@ export async function POST(req: Request) {
     if (!body.id) body.id = String(Date.now());
     events.push(body);
 
-    return NextResponse.json({ success: true, events });
+    return NextResponse.json({ success: true, event: body, events });
   } catch (err) {
     return NextResponse.json({ success: false, error: "Invalid body" }, { status: 400 });
   }
