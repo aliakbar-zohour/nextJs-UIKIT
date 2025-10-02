@@ -13,11 +13,12 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import faLocale from "@fullcalendar/core/locales/fa";
 import { ReactNode, useState, useRef, useEffect } from "react";
-import { EventType } from "@/app/types/types";
+import { EventType, BlockedDay } from "@/app/types/types";
 import Dropdown from "../DropDown/DropDown";
 
 interface CalendarProps {
   events: EventType[];
+  blockedDays?: BlockedDay[];
   onEventClick?: (event: EventType) => void;
   onAvatarClick?: (user: any) => void;
   onAddEvent?: (date: string) => void;
@@ -38,6 +39,7 @@ interface CalendarProps {
 
 export default function MyCalendar({
   events,
+  blockedDays = [],
   onEventClick,
   onAvatarClick,
   onAddEvent,
@@ -160,15 +162,48 @@ export default function MyCalendar({
   const handleDatesSet = (arg: DatesSetArg) => {
     const dayAvatars = getDayAvatars();
     const headers = document.querySelectorAll(".fc-col-header-cell");
+    const today = new Date().toDateString();
 
     headers.forEach((header) => {
       const dateStr = header.getAttribute("data-date");
       if (!dateStr) return;
 
-      const avatars = dayAvatars[new Date(dateStr).toDateString()];
+      const currentDate = new Date(dateStr);
+      const currentDateStr = currentDate.toDateString();
+      const isToday = currentDateStr === today;
+      const isBlocked = blockedDays.some(blocked => blocked.date === dateStr);
+
+      // Remove existing custom elements
       const existing = header.querySelector(".avatar-header");
       if (existing) existing.remove();
+      const existingBlocked = header.querySelector(".blocked-indicator");
+      if (existingBlocked) existingBlocked.remove();
 
+      // Style today's header with purple background
+      if (isToday) {
+        header.classList.add("today-header");
+        const titleDiv = header.querySelector(".fc-col-header-cell-cushion");
+        if (titleDiv) {
+          titleDiv.classList.add("today-title");
+        }
+      } else {
+        header.classList.remove("today-header");
+        const titleDiv = header.querySelector(".fc-col-header-cell-cushion");
+        if (titleDiv) {
+          titleDiv.classList.remove("today-title");
+        }
+      }
+
+      // Add blocked day indicator
+      if (isBlocked) {
+        const blockedDiv = document.createElement("div");
+        blockedDiv.className = "blocked-indicator absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border border-white";
+        blockedDiv.title = "روز بلاک شده";
+        (header as HTMLElement).style.position = "relative";
+        header.appendChild(blockedDiv);
+      }
+
+      const avatars = dayAvatars[currentDateStr];
       if (!avatars || avatars.length === 0) return;
 
       const div = document.createElement("div");
@@ -206,6 +241,42 @@ export default function MyCalendar({
 
   return (
     <div ref={calendarRef} className="relative">
+      <style jsx global>{`
+        .today-header {
+          background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%) !important;
+          border-radius: 8px !important;
+          margin: 2px !important;
+        }
+        
+        .today-title {
+          color: white !important;
+          font-weight: bold !important;
+        }
+        
+        .fc-col-header-cell.today-header .fc-col-header-cell-cushion {
+          color: white !important;
+        }
+        
+        .fc-today {
+          background-color: transparent !important;
+        }
+        
+        .fc-today .fc-daygrid-day-number {
+          background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%) !important;
+          color: white !important;
+          border-radius: 50% !important;
+          width: 28px !important;
+          height: 28px !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          font-weight: bold !important;
+        }
+        
+        .blocked-indicator {
+          z-index: 10;
+        }
+      `}</style>
       <FullCalendar
         plugins={plugins}
         headerToolbar={headerToolbar}

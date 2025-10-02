@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Operator, EventType } from "@/app/types/types";
+import { Operator, EventType, BlockedDay } from "@/app/types/types";
 import Button from "@/components/ui/Button/Button";
 import { useToastHelpers } from "@/components/ui/Toast/useToast";
 import DatePicker from "react-multi-date-picker";
@@ -17,6 +17,7 @@ dayjs.extend(isSameOrBefore);
 interface CreateEventFormProps {
   operators: Operator[];
   events: EventType[];
+  blockedDays?: BlockedDay[];
   onSave: (newEvent: EventType) => void;
   onClose: () => void;
 }
@@ -35,6 +36,7 @@ const SERVICES: Service[] = [
 export default function CreateEventForm({
   operators,
   events,
+  blockedDays = [],
   onSave,
   onClose,
 }: CreateEventFormProps) {
@@ -86,6 +88,17 @@ export default function CreateEventForm({
       return;
 
     const dateStr = dayjs(selectedDate.toDate()).format("YYYY-MM-DD");
+    
+    // Check if the selected date is blocked
+    const isBlocked = blockedDays.some(blocked => blocked.date === dateStr);
+    if (isBlocked) {
+      setFreeIntervals([]);
+      setSuggestedDates([]);
+      toast.warning("این روز بلاک شده است", {
+        title: "روز غیرفعال"
+      });
+      return;
+    }
 
     const operatorEvents = events
       .filter(
@@ -150,7 +163,7 @@ export default function CreateEventForm({
     } else {
       setSuggestedDates([]);
     }
-  }, [selectedOperator, selectedDate, selectedServices, events, totalDuration]);
+  }, [selectedOperator, selectedDate, selectedServices, events, totalDuration, blockedDays]);
 
   // Function to find alternative dates with available slots
   const findAlternativeDates = (operator: Operator, duration: number, currentDate: string) => {
@@ -161,6 +174,10 @@ export default function CreateEventForm({
     for (let i = 1; i <= 7 && suggestions.length < 3; i++) {
       const checkDate = currentDateObj.add(i, 'day');
       const checkDateStr = checkDate.format('YYYY-MM-DD');
+      
+      // Skip if this date is blocked
+      const isBlocked = blockedDays.some(blocked => blocked.date === checkDateStr);
+      if (isBlocked) continue;
       
       // Get events for this operator on this date
       const operatorEvents = events

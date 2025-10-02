@@ -23,3 +23,9 @@ export type EventType = {
     description?: string;
   };
 };
+
+export type BlockedDay = {
+  id: string;
+  date: string;
+  reason?: string;
+};

@@ -7,12 +7,13 @@ import MyCalendar from "@/components/ui/Calendar/Calendar";
 import CreateEventForm from "@/widgets/CreateEventForm";
 import { ToastProvider } from "@/components/ui/Toast/ToastProvider";
 import { useToastHelpers } from "@/components/ui/Toast/useToast";
-import { Operator, EventType } from "@/app/types/types";
+import { Operator, EventType, BlockedDay } from "@/app/types/types";
 
 function CalendarPageContent() {
   const toast = useToastHelpers();
   const [operators, setOperators] = useState<Operator[]>([]);
   const [events, setEvents] = useState<EventType[]>([]);
+  const [blockedDays, setBlockedDays] = useState<BlockedDay[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<EventType | null>(null);
   const [selectedOperator, setSelectedOperator] = useState<Operator | null>(
     null
@@ -39,6 +40,15 @@ function CalendarPageContent() {
     fetchOperators();
   }, []);
 
+  useEffect(() => {
+    async function fetchBlockedDays() {
+      const res = await fetch("/api/blocked-days");
+      const data = await res.json();
+      setBlockedDays(data);
+    }
+    fetchBlockedDays();
+  }, []);
+
   const filteredEvents = useMemo(() => {
     if (!selectedOperator) return events;
     return events.filter(
@@ -60,12 +70,30 @@ function CalendarPageContent() {
   };
 
   // Handle blocking a day
-  const handleBlockDay = (dateStr: string) => {
-    console.log("Blocking day:", dateStr);
-    // TODO: Implement day blocking logic
-    toast.success(`روز ${new Date(dateStr).toLocaleDateString("fa-IR")} بلاک شد`, {
-      title: "روز بلاک شد"
-    });
+  const handleBlockDay = async (dateStr: string) => {
+    try {
+      const res = await fetch("/api/blocked-days", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: dateStr }),
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        setBlockedDays(data.blockedDays);
+        toast.success(`روز ${new Date(dateStr).toLocaleDateString("fa-IR")} بلاک شد`, {
+          title: "روز بلاک شد"
+        });
+      } else {
+        toast.error(data.error || "خطا در بلاک کردن روز", {
+          title: "خطا"
+        });
+      }
+    } catch (error) {
+      toast.error("خطا در ارتباط با سرور", {
+        title: "خطا"
+      });
+    }
   };
 
   const handleEventSave = (newEvent: EventType) => {
@@ -102,6 +130,7 @@ function CalendarPageContent() {
       <div className="bg-white rounded-2xl shadow p-4">
         <MyCalendar 
           events={filteredEvents} 
+          blockedDays={blockedDays}
           onEventClick={handleEventClick}
           onAddEvent={handleAddEvent}
           onBlockDay={handleBlockDay}
@@ -113,6 +142,7 @@ function CalendarPageContent() {
         <CreateEventForm
           operators={operators}
           events={events}
+          blockedDays={blockedDays}
           onSave={handleEventSave}
           onClose={() => setIsCreateOpen(false)}
         />
