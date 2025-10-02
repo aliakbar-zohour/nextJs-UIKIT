@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
+import { StoreProvider } from "@/store/StoreProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,13 +29,15 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <div className="flex items-center justify-start bg-purple-800 text-white p-4 gap-4 uppercase">
-          <Link className="font-medium text-lg" href={'/calendar'}>کلــــــندر</Link>
-          <Link className="font-medium text-lg" href={'/grid'}>ویو گرید</Link>
+        <StoreProvider>
+          <div className="flex items-center justify-start bg-purple-800 text-white p-4 gap-4 uppercase">
+            <Link className="font-semibold text-xl" href={'/calendar'}>رزور وقت</Link>
+            <Link className="font-semibold text-xl" href={'/grid'}>برنامه زمانی</Link>
           </div>
           <section className="p-5">
-        {children}
-        </section>
+            {children}
+          </section>
+        </StoreProvider>
       </body>
     </html>
   );

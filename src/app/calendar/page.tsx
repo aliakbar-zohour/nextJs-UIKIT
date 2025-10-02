@@ -8,48 +8,57 @@ import CreateEventForm from "@/widgets/CreateEventForm";
 import { ToastProvider } from "@/components/ui/Toast/ToastProvider";
 import { useToastHelpers } from "@/components/ui/Toast/useToast";
 import { Operator, EventType, BlockedDay } from "@/app/types/types";
+import { useCalendarStore, useOperatorsStore } from "@/store/index";
+import { useCalendarActions, useOperatorsActions } from "@/store/hooks";
 
 function CalendarPageContent() {
   const toast = useToastHelpers();
-  const [operators, setOperators] = useState<Operator[]>([]);
-  const [events, setEvents] = useState<EventType[]>([]);
-  const [blockedDays, setBlockedDays] = useState<BlockedDay[]>([]);
-  const [selectedEvent, setSelectedEvent] = useState<EventType | null>(null);
-  const [selectedOperator, setSelectedOperator] = useState<Operator | null>(
-    null
-  );
+  
+  // Use Zustand stores
+  const { 
+    events, 
+    blockedDays, 
+    selectedEvent, 
+    setSelectedEvent,
+    addEvent 
+  } = useCalendarStore();
+  
+  const { operators } = useOperatorsStore();
+  
+  const { 
+    fetchEvents, 
+    fetchBlockedDays, 
+    createEvent, 
+    blockDay 
+  } = useCalendarActions();
+  
+  const { fetchOperators } = useOperatorsActions();
+  
+  // Local state for UI
+  const [selectedOperator, setSelectedOperator] = useState<Operator | null>(null);
   const [operatorSearchQuery, setOperatorSearchQuery] = useState("");
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEventOpen, setIsEventOpen] = useState(false);
   const calendarRef = useRef<any>(null);
 
+  // Fetch data on component mount - only if store is empty
   useEffect(() => {
-    async function fetchEvents() {
-      const res = await fetch("/api/events");
-      const data = await res.json();
-      setEvents(data);
-    }
-    fetchEvents();
-  }, []);
-
-  useEffect(() => {
-    async function fetchOperators() {
-      const res = await fetch("/api/operators");
-      const data = await res.json();
-      setOperators(data);
-    }
-    fetchOperators();
-  }, []);
-
-  useEffect(() => {
-    async function fetchBlockedDays() {
-      const res = await fetch("/api/blocked-days");
-      const data = await res.json();
-      setBlockedDays(data);
-    }
-    fetchBlockedDays();
-  }, []);
+    const loadData = async () => {
+      // Only fetch if store is empty
+      if (events.length === 0) {
+        await fetchEvents();
+      }
+      if (operators.length === 0) {
+        await fetchOperators();
+      }
+      if (blockedDays.length === 0) {
+        await fetchBlockedDays();
+      }
+    };
+    
+    loadData();
+  }, []); // Empty dependency array to run only once on mount
 
   const filteredEvents = useMemo(() => {
     if (!selectedOperator) return events;
@@ -80,35 +89,80 @@ function CalendarPageContent() {
   };
 
   // Handle blocking a day
-  const handleBlockDay = async (dateStr: string) => {
-    try {
-      const res = await fetch("/api/blocked-days", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: dateStr }),
-      });
-      const data = await res.json();
+  const handleBlockDay = async (dateStr: string, reason?: string) => {
+    console.log('Blocking day:', dateStr, 'with reason:', reason);
+    
+    const blockedDay: BlockedDay = {
+      id: `blocked-${dateStr}-${Date.now()}`,
+      date: dateStr,
+      reason: reason || "روز بلاک شده"
+    };
+    
+    const success = await blockDay(blockedDay);
+    console.log('Block day result:', success);
+    
+    if (success) {
+      // Force refresh blocked days to ensure UI updates
+      await fetchBlockedDays();
       
-      if (data.success) {
-        setBlockedDays(data.blockedDays);
-        toast.success(`روز ${new Date(dateStr).toLocaleDateString("fa-IR")} بلاک شد`, {
-          title: "روز بلاک شد"
-        });
-      } else {
-        toast.error(data.error || "خطا در بلاک کردن روز", {
-          title: "خطا"
-        });
-      }
-    } catch (error) {
-      toast.error("خطا در ارتباط با سرور", {
+      toast.success(`روز ${new Date(dateStr).toLocaleDateString("fa-IR")} بلاک شد`, {
+        title: "روز بلاک شد"
+      });
+    } else {
+      toast.error("خطا در بلاک کردن روز", {
         title: "خطا"
       });
     }
   };
 
-  const handleEventSave = (newEvent: EventType) => {
-    // Add the new event immediately to the events list
-    setEvents(prevEvents => [...prevEvents, newEvent]);
+  // Handle blocking a date range
+  const handleBlockRange = async (startDate: string, endDate: string, label?: string) => {
+    try {
+      // Create blocked days for each day in the range
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const blockedDays: BlockedDay[] = [];
+      
+      for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
+        const dateStr = d.toISOString().split('T')[0];
+        blockedDays.push({
+          id: `blocked-${dateStr}-${Date.now()}`,
+          date: dateStr,
+          reason: label || "بازه زمانی بلاک شده"
+        });
+      }
+      
+      // Block each day
+      let successCount = 0;
+      for (const day of blockedDays) {
+        const success = await blockDay(day);
+        if (success) successCount++;
+      }
+      
+      if (successCount > 0) {
+        toast.success(`${successCount} روز بلاک شد`, {
+          title: "بازه زمانی بلاک شد"
+        });
+      } else {
+        toast.error("خطا در بلاک کردن بازه زمانی", {
+          title: "خطا"
+        });
+      }
+    } catch (error) {
+      toast.error("خطا در بلاک کردن بازه زمانی", {
+        title: "خطا"
+      });
+    }
+  };
+
+  const handleEventSave = async (newEvent: EventType) => {
+    // The form has already handled the API call and returned the saved event
+    // Just add it to the store and refresh the events list
+    addEvent(newEvent);
+    
+    // Refresh events to ensure we have the latest data
+    await fetchEvents();
+    
     setIsCreateOpen(false);
     
     // Navigate calendar to the booked time
@@ -124,6 +178,10 @@ function CalendarPageContent() {
         }
       }, 100);
     }
+    
+    toast.success("رویداد با موفقیت ایجاد شد", {
+      title: "موفق"
+    });
   };
 
   return (
@@ -213,6 +271,7 @@ function CalendarPageContent() {
           onEventClick={handleEventClick}
           onAddEvent={handleAddEvent}
           onBlockDay={handleBlockDay}
+          onBlockRange={handleBlockRange}
         />
       </div>
 
