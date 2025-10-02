@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import Sidebar from "@/components/ui/SideBar/Sidebar";
 import Button from "@/components/ui/Button/Button";
 import MyCalendar from "@/components/ui/Calendar/Calendar";
@@ -18,9 +18,11 @@ function CalendarPageContent() {
   const [selectedOperator, setSelectedOperator] = useState<Operator | null>(
     null
   );
+  const [operatorSearchQuery, setOperatorSearchQuery] = useState("");
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEventOpen, setIsEventOpen] = useState(false);
+  const calendarRef = useRef<any>(null);
 
   useEffect(() => {
     async function fetchEvents() {
@@ -55,6 +57,14 @@ function CalendarPageContent() {
       (e) => e.extendedProps.operator.id === selectedOperator.id
     );
   }, [events, selectedOperator]);
+
+  const filteredOperators = useMemo(() => {
+    if (!operatorSearchQuery.trim()) return operators;
+    return operators.filter(op => 
+      op.name.toLowerCase().includes(operatorSearchQuery.toLowerCase()) ||
+      op.specialty.toLowerCase().includes(operatorSearchQuery.toLowerCase())
+    );
+  }, [operators, operatorSearchQuery]);
 
   const handleEventClick = (event: EventType) => {
     setSelectedEvent(event);
@@ -100,35 +110,104 @@ function CalendarPageContent() {
     // Add the new event immediately to the events list
     setEvents(prevEvents => [...prevEvents, newEvent]);
     setIsCreateOpen(false);
+    
+    // Navigate calendar to the booked time
+    if (calendarRef.current && newEvent.start) {
+      const eventDate = new Date(newEvent.start);
+      // Use FullCalendar's gotoDate method
+      setTimeout(() => {
+        const calendarApi = calendarRef.current.getApi();
+        if (calendarApi) {
+          calendarApi.gotoDate(eventDate);
+          // Switch to week view to show the reservation in context
+          calendarApi.changeView('timeGridWeek', eventDate);
+        }
+      }, 100);
+    }
   };
 
   return (
-    <div className="p-6 font-vazir min-h-screen">
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex gap-2">
-          <Button onClick={() => setIsCreateOpen(true)} variant="outline">
-            + رزرو جدید
+    <div className="p-3 sm:p-4 lg:p-6 font-vazir min-h-screen">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 sm:mb-6 gap-4">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center">
+          <Button onClick={() => setIsCreateOpen(true)} variant="outline" className="flex items-center gap-2 w-full sm:w-auto">
+            <span className="text-lg">+</span>
+            رزرو جدید
           </Button>
-          <select
-            className="border rounded-lg px-3.5 gap-3 py-1"
-            value={selectedOperator?.id || ""}
-            onChange={(e) => {
-              const op = operators.find((o) => o.id === e.target.value) || null;
-              setSelectedOperator(op);
-            }}
-          >
-            <option value="">همه اپراتورها</option>
-            {operators.map((op) => (
-              <option key={op.id} value={op.id}>
-                {op.name} ({op.specialty})
-              </option>
-            ))}
-          </select>
+          
+          {/* Simplified Operators Section */}
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              placeholder="جستجوی اپراتور..."
+              value={operatorSearchQuery}
+              onChange={(e) => setOperatorSearchQuery(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 sm:px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm"
+            />
+            <Button 
+              onClick={() => {
+                setSelectedOperator(null);
+                setOperatorSearchQuery("");
+              }}
+              variant="outline"
+              className="text-sm whitespace-nowrap"
+            >
+              همه
+            </Button>
+          </div>
         </div>
+        
+        {/* Selected Operator Display */}
+        {selectedOperator && (
+          <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
+            <img
+              src={selectedOperator.avatar}
+              alt={selectedOperator.name}
+              className="w-8 h-8 rounded-full border border-white shadow-sm"
+            />
+            <div className="text-sm">
+              <div className="font-medium text-blue-900">{selectedOperator.name}</div>
+              <div className="text-xs text-blue-600">{selectedOperator.specialty}</div>
+            </div>
+            <button
+              onClick={() => setSelectedOperator(null)}
+              className="text-blue-500 hover:text-blue-700 ml-2"
+            >
+              ×
+            </button>
+          </div>
+        )}
+        
+        {/* Operator Selection Dropdown */}
+        {operatorSearchQuery && filteredOperators.length > 0 && !selectedOperator && (
+          <div className="absolute z-10 mt-12 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto w-full sm:w-80">
+            {filteredOperators.map((op) => (
+              <div
+                key={op.id}
+                onClick={() => {
+                  setSelectedOperator(op);
+                  setOperatorSearchQuery("");
+                }}
+                className="flex items-center gap-3 p-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+              >
+                <img
+                  src={op.avatar}
+                  alt={op.name}
+                  className="w-8 h-8 rounded-full border border-gray-200"
+                />
+                <div className="text-right">
+                  <div className="font-medium text-gray-900 text-sm">{op.name}</div>
+                  <div className="text-xs text-gray-500">{op.specialty}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div className="bg-white rounded-2xl shadow p-4">
+      <div className="bg-white rounded-xl sm:rounded-2xl shadow p-2 sm:p-4">
         <MyCalendar 
+          ref={calendarRef}
           events={filteredEvents} 
           blockedDays={blockedDays}
           onEventClick={handleEventClick}

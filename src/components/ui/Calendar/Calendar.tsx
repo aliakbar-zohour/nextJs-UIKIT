@@ -12,7 +12,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import faLocale from "@fullcalendar/core/locales/fa";
-import { ReactNode, useState, useRef, useEffect } from "react";
+import { ReactNode, useState, useRef, useEffect, forwardRef, useImperativeHandle } from "react";
 import { EventType, BlockedDay } from "@/app/types/types";
 import Dropdown from "../DropDown/DropDown";
 
@@ -37,7 +37,7 @@ interface CalendarProps {
   locale?: string;
 }
 
-export default function MyCalendar({
+const MyCalendar = forwardRef<any, CalendarProps>(function MyCalendar({
   events,
   blockedDays = [],
   onEventClick,
@@ -60,7 +60,7 @@ export default function MyCalendar({
   plugins = [dayGridPlugin, timeGridPlugin, interactionPlugin],
   height = "auto",
   locale = "fa",
-}: CalendarProps) {
+}: CalendarProps, ref) {
   // State for dropdown management
   const [dropdownState, setDropdownState] = useState<{
     isOpen: boolean;
@@ -73,6 +73,13 @@ export default function MyCalendar({
   });
   
   const calendarRef = useRef<HTMLDivElement>(null);
+  const fullCalendarRef = useRef<FullCalendar>(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Expose calendar API through ref
+  useImperativeHandle(ref, () => ({
+    getApi: () => fullCalendarRef.current?.getApi(),
+  }));
 
   // Handle date cell click to show dropdown
   const handleDateClick = (info: DateClickArg) => {
@@ -103,6 +110,24 @@ export default function MyCalendar({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [dropdownState.isOpen]);
 
+  // Update current time every 30 seconds for more accurate display
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 30000); // Update every 30 seconds
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Update time indicator when current time changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      addCurrentTimeIndicator();
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [currentTime]);
+
   // Dropdown menu items
   const dropdownItems = [
     {
@@ -112,6 +137,10 @@ export default function MyCalendar({
     {
       label: "بلاک کردن روز",
       value: "block-day",
+    },
+    {
+      label: "اضافه کردن گروه",
+      value: "add-group",
     },
   ];
 
@@ -123,6 +152,9 @@ export default function MyCalendar({
       onAddEvent(dropdownState.date);
     } else if (item.value === "block-day" && onBlockDay) {
       onBlockDay(dropdownState.date);
+    } else if (item.value === "add-group") {
+      // TODO: Implement add group functionality
+      console.log("Add group functionality not implemented yet");
     }
 
     setDropdownState(prev => ({ ...prev, isOpen: false }));
@@ -159,10 +191,97 @@ export default function MyCalendar({
     return map;
   };
 
+  const addCurrentTimeIndicator = () => {
+    // Remove existing time indicator
+    const existingIndicator = document.querySelector('.current-time-indicator');
+    if (existingIndicator) {
+      existingIndicator.remove();
+    }
+
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    
+    // Only show time indicator in time grid views and for today
+    const timeGridElement = document.querySelector('.fc-timegrid');
+    if (!timeGridElement) return;
+
+    // Find today's column
+    const todayColumn = document.querySelector(`[data-date="${todayStr}"]`);
+    if (!todayColumn) return;
+
+    // Calculate position based on current time
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const totalMinutes = hours * 60 + minutes;
+    
+    // Calendar starts at 8:00 AM (480 minutes)
+    const startMinutes = 8 * 60;
+    const endMinutes = 20 * 60; // 8:00 PM
+    
+    if (totalMinutes < startMinutes || totalMinutes > endMinutes) return;
+    
+    // Calculate position as percentage
+    const workingMinutes = endMinutes - startMinutes;
+    const currentWorkingMinutes = totalMinutes - startMinutes;
+    const percentage = (currentWorkingMinutes / workingMinutes) * 100;
+    
+    // Create time indicator line
+    const indicator = document.createElement('div');
+    indicator.className = 'current-time-indicator';
+    indicator.style.cssText = `
+      position: absolute;
+      top: ${percentage}%;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #ef4444;
+      z-index: 1000;
+      pointer-events: none;
+    `;
+    
+    // Add time label badge
+    const timeLabel = document.createElement('div');
+    timeLabel.className = 'current-time-label';
+    timeLabel.textContent = now.toLocaleTimeString('fa-IR', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+    });
+    timeLabel.style.cssText = `
+      position: absolute;
+      right: 0;
+      top: -14px;
+      background: #ef4444;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 12px;
+      font-weight: bold;
+      box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+      border: none;
+      z-index: 1001;
+      white-space: nowrap;
+      font-family: 'Vazir' !important;
+    `;
+    
+    indicator.appendChild(timeLabel);
+    
+    // Find the time grid content area
+    const timeGridContent = document.querySelector('.fc-timegrid-body') as HTMLElement;
+    if (timeGridContent) {
+      timeGridContent.style.position = 'relative';
+      timeGridContent.appendChild(indicator);
+    }
+  };
+
   const handleDatesSet = (arg: DatesSetArg) => {
     const dayAvatars = getDayAvatars();
     const headers = document.querySelectorAll(".fc-col-header-cell");
     const today = new Date().toDateString();
+    
+    // Add current time indicator
+    setTimeout(() => {
+      addCurrentTimeIndicator();
+    }, 100);
 
     headers.forEach((header) => {
       const dateStr = header.getAttribute("data-date");
@@ -258,7 +377,7 @@ export default function MyCalendar({
         }
         
         .fc-today {
-          background-color: transparent !important;
+          background-color: white !important;
         }
         
         .fc-today .fc-daygrid-day-number {
@@ -278,6 +397,7 @@ export default function MyCalendar({
         }
       `}</style>
       <FullCalendar
+        ref={fullCalendarRef}
         plugins={plugins}
         headerToolbar={headerToolbar}
         initialView={initialView}
@@ -316,4 +436,6 @@ export default function MyCalendar({
       )}
     </div>
   );
-}
+});
+
+export default MyCalendar;
