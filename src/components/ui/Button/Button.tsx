@@ -24,17 +24,17 @@ const Button: React.FC<ButtonProps> = ({
   loading = false,
 }) => {
   const baseStyles =
-    "relative flex items-center justify-center cursor-pointer rounded-xl font-medium shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2";
+    "relative flex items-center justify-center cursor-pointer rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1";
 
   const variants = {
     primary:
-      "bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 focus:ring-blue-400",
+      "bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-300 shadow-sm",
     secondary:
-      "bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 hover:from-gray-200 hover:to-gray-300 focus:ring-gray-400",
+      "bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-gray-300 border border-gray-200",
     outline:
-      "border border-gray-400 text-gray-800 hover:bg-gray-100 focus:ring-gray-400",
+      "border border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-gray-300 bg-white",
     danger:
-      "bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 focus:ring-red-400",
+      "bg-red-600 text-white hover:bg-red-700 focus:ring-red-300 shadow-sm",
   };
 
   const sizes = {
@@ -56,7 +56,7 @@ const Button: React.FC<ButtonProps> = ({
       )}
     >
       {loading ? (
-        <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        <span className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin opacity-70" />
       ) : (
         children
       )}
