@@ -44,7 +44,7 @@ const Dialog: React.FC<DialogProps> = ({ isOpen, onClose, children }) => {
 
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 scale-150 text-gray-600 hover:text-gray-900 dark:hover:text-white transition"
+              className="absolute top-4 right-4 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition"
             >
               ✕
             </button>
