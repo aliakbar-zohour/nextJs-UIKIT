@@ -141,6 +141,8 @@ export default function CreateEventForm({
 
     // تبدیل بازه‌های آزاد به تایم‌های جداگانه
     const timeSlots: { start: string; end: string }[] = [];
+    const now = dayjs();
+    const isToday = dateStr === now.format("YYYY-MM-DD");
     
     free.forEach((f) => {
       const startTime = dayjs(`${dateStr}T${f.start}`);
@@ -148,11 +150,44 @@ export default function CreateEventForm({
       
       let currentTime = startTime;
       while (currentTime.add(totalDuration, 'minute').isSameOrBefore(endTime)) {
+        const slotStart = currentTime;
         const slotEnd = currentTime.add(totalDuration, 'minute');
-        timeSlots.push({
-          start: currentTime.format('HH:mm'),
-          end: slotEnd.format('HH:mm')
+        
+        // For today: Skip past time slots (must be after current time)
+        if (isToday && slotStart.isSameOrBefore(now)) {
+          currentTime = currentTime.add(30, 'minute'); // 30 minute intervals
+          continue;
+        }
+        
+        // Strict overlap checking - check against ALL events, not just operator events
+        const hasConflict = events.some(event => {
+          // Skip events that are not for the same operator
+          if (event.extendedProps.operator.id !== selectedOperator.id) {
+            return false;
+          }
+          
+          // Skip events that are not on the same date
+          const eventDate = dayjs(event.start).format("YYYY-MM-DD");
+          if (eventDate !== dateStr) {
+            return false;
+          }
+          
+          const eventStart = dayjs(event.start);
+          const eventEnd = event.end ? dayjs(event.end) : dayjs(event.start).add(30, "minute");
+          
+          // Strict overlap check - no overlapping allowed at all
+          // Two time slots overlap if: start1 < end2 AND start2 < end1
+          return (slotStart.isBefore(eventEnd) && eventStart.isBefore(slotEnd));
         });
+        
+        // Only add slot if no conflict
+        if (!hasConflict) {
+          timeSlots.push({
+            start: currentTime.format('HH:mm'),
+            end: slotEnd.format('HH:mm')
+          });
+        }
+        
         currentTime = currentTime.add(30, 'minute'); // 30 minute intervals
       }
     });
@@ -162,7 +197,8 @@ export default function CreateEventForm({
 
     // If no free intervals, suggest alternative dates
     if (timeSlots.length === 0 && selectedOperator && selectedServices.length > 0) {
-      const suggestions = findAlternativeDates(selectedOperator, totalDuration, dateStr);
+      // For today with no available slots, prioritize tomorrow
+      const suggestions = findAlternativeDates(selectedOperator, totalDuration, dateStr, isToday);
       setSuggestedDates(suggestions);
     } else {
       setSuggestedDates([]);
@@ -170,12 +206,21 @@ export default function CreateEventForm({
   }, [selectedOperator, selectedDate, selectedServices, events, totalDuration, blockedDays]);
 
   // Function to find alternative dates with available slots
-  const findAlternativeDates = (operator: Operator, duration: number, currentDate: string) => {
+  const findAlternativeDates = (operator: Operator, duration: number, currentDate: string, isCurrentDateToday: boolean = false) => {
     const suggestions: string[] = [];
     const currentDateObj = dayjs(currentDate);
+    const today = dayjs();
     
-    // Check next 7 days
-    for (let i = 1; i <= 7 && suggestions.length < 3; i++) {
+    // If current date is today and has no slots, start from tomorrow
+    let startDay = 1;
+    if (isCurrentDateToday) {
+      startDay = 1; // Start from tomorrow
+    } else if (currentDateObj.isSameOrBefore(today, 'day')) {
+      startDay = today.diff(currentDateObj, 'day') + 1;
+    }
+    
+    // Check next 7 days from the appropriate starting point
+    for (let i = startDay; i <= 7 && suggestions.length < 3; i++) {
       const checkDate = currentDateObj.add(i, 'day');
       const checkDateStr = checkDate.format('YYYY-MM-DD');
       
@@ -183,7 +228,7 @@ export default function CreateEventForm({
       const isBlocked = blockedDays.some(blocked => blocked.date === checkDateStr);
       if (isBlocked) continue;
       
-      // Get events for this operator on this date
+      // Get ALL events for this operator on this date (strict checking)
       const operatorEvents = events
         .filter(e => 
           e.extendedProps.operator.id === operator.id &&
@@ -218,13 +263,32 @@ export default function CreateEventForm({
         });
       }
 
-      // Check if any free interval can accommodate the duration
+      // Check if any free interval can accommodate the duration (strict checking)
       const hasAvailableSlot = free.some(f => {
-        const diff = dayjs(`${checkDateStr}T${f.end}`).diff(
-          dayjs(`${checkDateStr}T${f.start}`),
-          'minute'
-        );
-        return diff >= duration;
+        const freeStart = dayjs(`${checkDateStr}T${f.start}`);
+        const freeEnd = dayjs(`${checkDateStr}T${f.end}`);
+        const diff = freeEnd.diff(freeStart, 'minute');
+        
+        if (diff < duration) return false;
+        
+        // Additional check: ensure no overlaps within this free slot
+        let currentSlot = freeStart;
+        while (currentSlot.add(duration, 'minute').isSameOrBefore(freeEnd)) {
+          const slotEnd = currentSlot.add(duration, 'minute');
+          
+          // Check if this specific slot overlaps with any existing event
+          const hasConflict = operatorEvents.some(event => {
+            return (currentSlot.isBefore(event.end) && event.start.isBefore(slotEnd));
+          });
+          
+          if (!hasConflict) {
+            return true; // Found at least one available slot
+          }
+          
+          currentSlot = currentSlot.add(30, 'minute');
+        }
+        
+        return false;
       });
 
       if (hasAvailableSlot) {
@@ -280,22 +344,59 @@ export default function CreateEventForm({
       return;
     }
 
+    // Additional validation: Check if selected time is not in the past for today
+    const dateStr = dayjs(selectedDate.toDate()).format("YYYY-MM-DD");
+    const now = dayjs();
+    const isToday = dateStr === now.format("YYYY-MM-DD");
+    
+    if (isToday) {
+      const selectedStartTime = dayjs(`${dateStr}T${selectedInterval.start}`);
+      if (selectedStartTime.isSameOrBefore(now)) {
+        toast.warning("نمی‌توانید برای زمان گذشته رزرو کنید", {
+          title: "زمان نامعتبر"
+        });
+        return;
+      }
+    }
+
+    // Final overlap check before submission
+    const startDateTime = dayjs(`${dateStr}T${selectedInterval.start}`);
+    const endDateTime = startDateTime.add(totalDuration, "minute");
+    
+    const hasConflict = events.some(event => {
+      if (event.extendedProps.operator.id !== selectedOperator.id) return false;
+      
+      const eventDate = dayjs(event.start).format("YYYY-MM-DD");
+      if (eventDate !== dateStr) return false;
+      
+      const eventStart = dayjs(event.start);
+      const eventEnd = event.end ? dayjs(event.end) : dayjs(event.start).add(30, "minute");
+      
+      return (startDateTime.isBefore(eventEnd) && eventStart.isBefore(endDateTime));
+    });
+    
+    if (hasConflict) {
+      toast.error("این زمان قبلاً رزرو شده است. لطفاً زمان دیگری انتخاب کنید", {
+        title: "تداخل زمانی"
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      const dateStr = dayjs(selectedDate.toDate()).format("YYYY-MM-DD");
-      const startDateTime = dayjs(
+      const startDateTimeISO = dayjs(
         `${dateStr}T${selectedInterval.start}`
       ).toISOString();
-      const endDateTime = dayjs(startDateTime)
+      const endDateTimeISO = dayjs(startDateTimeISO)
         .add(totalDuration, "minute")
         .toISOString();
 
       const newEvent: EventType = {
         id: `${Date.now()}`,
         title: title,
-        start: startDateTime,
-        end: endDateTime,
+        start: startDateTimeISO,
+        end: endDateTimeISO,
         extendedProps: {
           operator: selectedOperator,
           services: selectedServices,
@@ -498,6 +599,7 @@ export default function CreateEventForm({
               locale={persian_fa}
               className="border rounded px-3 py-2 w-full"
               placeholder="تاریخ را انتخاب کنید"
+              minDate={new DateObject({ calendar: persian, locale: persian_fa })}
             />
           </div>
 

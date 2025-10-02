@@ -41,6 +41,29 @@ export async function POST(req: Request) {
   }
 }
 
+export async function PUT(req: Request) {
+  try {
+    const body = await req.json();
+    const { id, ...updates } = body;
+    
+    if (!id) {
+      return NextResponse.json({ success: false, error: "id required" }, { status: 400 });
+    }
+
+    const eventIndex = events.findIndex(ev => ev.id === id);
+    if (eventIndex === -1) {
+      return NextResponse.json({ success: false, error: "Event not found" }, { status: 404 });
+    }
+
+    // Update the event with new data
+    events[eventIndex] = { ...events[eventIndex], ...updates };
+    
+    return NextResponse.json({ success: true, event: events[eventIndex] });
+  } catch (err) {
+    return NextResponse.json({ success: false, error: "Invalid body" }, { status: 400 });
+  }
+}
+
 export async function DELETE(req: Request) {
   try {
     const body = await req.json();

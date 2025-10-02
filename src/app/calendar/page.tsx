@@ -157,28 +157,13 @@ function CalendarPageContent() {
 
   const handleEventSave = async (newEvent: EventType) => {
     // The form has already handled the API call and returned the saved event
-    // Just add it to the store and refresh the events list
+    // Only add the new event to store - DON'T refresh all events to prevent jumping
     addEvent(newEvent);
-    
-    // Refresh events to ensure we have the latest data
-    await fetchEvents();
     
     setIsCreateOpen(false);
     
-    // Navigate calendar to the booked time
-    if (calendarRef.current && newEvent.start) {
-      const eventDate = new Date(newEvent.start);
-      // Use FullCalendar's gotoDate method
-      setTimeout(() => {
-        const calendarApi = calendarRef.current.getApi();
-        if (calendarApi) {
-          calendarApi.gotoDate(eventDate);
-          // Switch to week view to show the reservation in context
-          calendarApi.changeView('timeGridWeek', eventDate);
-        }
-      }, 100);
-    }
-    
+    // Don't automatically navigate to the event date to prevent UI jumping
+    // Just show success message
     toast.success("رویداد با موفقیت ایجاد شد", {
       title: "موفق"
     });

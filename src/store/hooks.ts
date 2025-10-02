@@ -64,8 +64,7 @@ export const useCalendarActions = () => {
         const newEvent = result.success ? result.event : result;
         if (newEvent) {
           addEvent(newEvent);
-          // Also refresh the entire events list to ensure consistency
-          await fetchEvents();
+          // Don't refresh all events to prevent jumping - just add the new one
           return newEvent;
         }
       }
@@ -75,7 +74,7 @@ export const useCalendarActions = () => {
       setIsLoading(false);
     }
     return null;
-  }, [addEvent, setIsLoading, fetchEvents]);
+  }, [addEvent, setIsLoading]);
 
   // Update event with API call and update store
   const updateEventAPI = useCallback(async (id: string, updates: Partial<EventType>) => {
@@ -88,9 +87,12 @@ export const useCalendarActions = () => {
       });
       
       if (response.ok) {
-        const updatedEvent = await response.json();
-        updateEvent(id, updatedEvent);
-        return updatedEvent;
+        const result = await response.json();
+        const updatedEventData = result.success ? result.event : result;
+        if (updatedEventData) {
+          updateEvent(id, updatedEventData);
+          return updatedEventData;
+        }
       }
     } catch (error) {
       console.error('Failed to update event:', error);
